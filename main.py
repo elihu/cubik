@@ -35,7 +35,10 @@ def main():
     
     # Main game loop
     print("\n🎮 Starting game loop...")
-    print("Controls: ESC to quit")
+    print("Controls:")
+    print("  - Mouse: Click and drag to rotate the cube")
+    print("  - R: Reset cube rotation")
+    print("  - ESC: Quit")
     print("=" * 50)
     
     running = True

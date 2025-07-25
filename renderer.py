@@ -20,6 +20,13 @@ class Renderer:
         self.display = None
         self.clock = None
         self.initialized = False
+        
+        # Mouse rotation state
+        self.mouse_pressed = False
+        self.last_mouse_pos = (0, 0)
+        self.cube_rotation_x = config.INITIAL_ROTATION_X
+        self.cube_rotation_y = config.INITIAL_ROTATION_Y
+        self.rotation_sensitivity = 0.5  # Adjust for faster/slower rotation
     
     def initialize(self):
         """Initialize Pygame, OpenGL, and the display window."""
@@ -36,10 +43,10 @@ class Renderer:
         gluPerspective(config.FOV, (self.display[0] / self.display[1]), 
                       config.NEAR_PLANE, config.FAR_PLANE)
         
-        # Set initial camera position
+        # Set initial camera position and rotation
         glTranslatef(0.0, 0.0, -config.CAMERA_DISTANCE)
-        glRotatef(config.INITIAL_ROTATION_X, 1, 0, 0)
-        glRotatef(config.INITIAL_ROTATION_Y, 0, 1, 0)
+        glRotatef(self.cube_rotation_x, 1, 0, 0)
+        glRotatef(self.cube_rotation_y, 0, 1, 0)
         
         self.clock = pygame.time.Clock()
         self.initialized = True
@@ -49,6 +56,14 @@ class Renderer:
     def clear_screen(self):
         """Clear the screen and depth buffer."""
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    
+    def apply_cube_rotation(self):
+        """Apply the current cube rotation."""
+        # Reset to base position and apply current rotation
+        glLoadIdentity()
+        glTranslatef(0.0, 0.0, -config.CAMERA_DISTANCE)
+        glRotatef(self.cube_rotation_x, 1, 0, 0)
+        glRotatef(self.cube_rotation_y, 0, 1, 0)
     
     def render_frame(self, cube):
         """
@@ -61,7 +76,15 @@ class Renderer:
             raise RuntimeError("Renderer not initialized. Call initialize() first.")
         
         self.clear_screen()
+        
+        # Apply cube rotation
+        glPushMatrix()
+        glRotatef(self.cube_rotation_x, 1, 0, 0)
+        glRotatef(self.cube_rotation_y, 0, 1, 0)
+        
         cube.draw()
+        
+        glPopMatrix()
         pygame.display.flip()
     
     def handle_events(self):
@@ -77,6 +100,34 @@ class Renderer:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
+                elif event.key == pygame.K_r:
+                    # Reset cube rotation
+                    self.cube_rotation_x = config.INITIAL_ROTATION_X
+                    self.cube_rotation_y = config.INITIAL_ROTATION_Y
+                    print("✓ Cube rotation reset")
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left mouse button
+                    self.mouse_pressed = True
+                    self.last_mouse_pos = event.pos
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:  # Left mouse button
+                    self.mouse_pressed = False
+            elif event.type == pygame.MOUSEMOTION:
+                if self.mouse_pressed:
+                    # Calculate mouse movement
+                    dx = event.pos[0] - self.last_mouse_pos[0]
+                    dy = event.pos[1] - self.last_mouse_pos[1]
+                    
+                    # Apply rotation based on mouse movement
+                    self.cube_rotation_y += dx * self.rotation_sensitivity
+                    self.cube_rotation_x += dy * self.rotation_sensitivity
+                    
+                    # Keep rotation within reasonable bounds
+                    self.cube_rotation_x = max(-90, min(90, self.cube_rotation_x))
+                    
+                    # Update last mouse position
+                    self.last_mouse_pos = event.pos
+        
         return True
     
     def get_fps(self):
