@@ -36,7 +36,8 @@ def main():
     # Main game loop
     print("\n🎮 Starting game loop...")
     print("Controls:")
-    print("  - Mouse: Click and drag to rotate the cube")
+    print("  - Left mouse: Click and drag to rotate the cube")
+    print("  - Right mouse: Click to select a face")
     print("  - R: Reset cube rotation")
     print("  - ESC: Quit")
     print("=" * 50)

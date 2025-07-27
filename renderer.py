@@ -27,6 +27,9 @@ class Renderer:
         self.cube_rotation_x = config.INITIAL_ROTATION_X
         self.cube_rotation_y = config.INITIAL_ROTATION_Y
         self.rotation_sensitivity = 0.5  # Adjust for faster/slower rotation
+        
+        # Face selection state
+        self.selected_face = None
     
     def initialize(self):
         """Initialize Pygame, OpenGL, and the display window."""
@@ -106,19 +109,29 @@ class Renderer:
                     self.cube_rotation_y = config.INITIAL_ROTATION_Y
                     print("✓ Cube rotation reset")
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Left mouse button
+                if event.button == 1:  # Left mouse button - cube rotation
                     self.mouse_pressed = True
                     self.last_mouse_pos = event.pos
+                elif event.button == 3:  # Right mouse button - face selection
+                    # Check if we clicked on a specific face
+                    clicked_face = self.get_clicked_face(event.pos)
+                    if clicked_face:
+                        self.selected_face = clicked_face
+                        print(f"✓ Selected face: {clicked_face}")
+                    else:
+                        self.selected_face = None
+                        print("No face selected")
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
                     self.mouse_pressed = False
+                    self.selected_face = None
             elif event.type == pygame.MOUSEMOTION:
                 if self.mouse_pressed:
                     # Calculate mouse movement
                     dx = event.pos[0] - self.last_mouse_pos[0]
                     dy = event.pos[1] - self.last_mouse_pos[1]
                     
-                    # Apply rotation based on mouse movement
+                    # Apply cube rotation
                     self.cube_rotation_y += dx * self.rotation_sensitivity
                     self.cube_rotation_x += dy * self.rotation_sensitivity
                     
@@ -158,3 +171,44 @@ class Renderer:
             gluPerspective(config.FOV, (width / height), 
                           config.NEAR_PLANE, config.FAR_PLANE)
             print(f"✓ Window resized to {width}x{height}")
+
+    def get_clicked_face(self, mouse_pos):
+        """
+        Detect which face of the cube was clicked using a simpler approach.
+        
+        Args:
+            mouse_pos (tuple): Mouse position (x, y) in screen coordinates
+            
+        Returns:
+            str or None: Face name ('U', 'D', 'F', 'B', 'L', 'R') or None if no face clicked
+        """
+        # Get screen center
+        screen_center_x = self.display[0] // 2
+        screen_center_y = self.display[1] // 2
+        
+        # Calculate relative position from center
+        rel_x = mouse_pos[0] - screen_center_x
+        rel_y = mouse_pos[1] - screen_center_y
+        
+        # Normalize to -1 to 1 range
+        norm_x = rel_x / screen_center_x
+        norm_y = rel_y / screen_center_y
+        
+        # Simple face detection based on screen position
+        # This is a basic approximation - we'll refine it later
+        if abs(norm_x) < 0.3 and abs(norm_y) < 0.3:
+            # Center area - could be front or back face
+            if norm_y > 0:
+                return 'F'  # Front face
+            else:
+                return 'B'  # Back face
+        elif norm_x > 0.3:
+            return 'R'  # Right face
+        elif norm_x < -0.3:
+            return 'L'  # Left face
+        elif norm_y > 0.3:
+            return 'U'  # Up face
+        elif norm_y < -0.3:
+            return 'D'  # Down face
+        
+        return None
