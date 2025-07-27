@@ -1,36 +1,35 @@
 """
-main.py
-
-Main game loop for the 3D Rubik's Cube application.
-Uses the RubiksCube and Renderer classes for clean separation of concerns.
+Main entry point for the simplified Rubik's Cube application.
 """
 
 import sys
-from rubiks_cube import RubiksCube
+from cube import Cube
 from renderer import Renderer
-import config
 
 def main():
-    """Main game loop."""
-    print("🎲 Starting Rubik's Cube 3D Application")
+    """Main function."""
+    print("🎲 Starting Rubik's Cube")
     print("=" * 50)
     
-    # Initialize the cube
+    # Initialize cube
     try:
-        cube = RubiksCube()
-        cube.validate_parameters()
+        cube = Cube(size=3)
         print("✓ Rubik's Cube initialized")
     except Exception as e:
         print(f"❌ Failed to initialize cube: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
     
-    # Initialize the renderer
+    # Initialize renderer
     try:
         renderer = Renderer()
         renderer.initialize()
         print("✓ Renderer initialized")
     except Exception as e:
         print(f"❌ Failed to initialize renderer: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
     
     # Main game loop
@@ -38,18 +37,18 @@ def main():
     print("Controls:")
     print("  - Left mouse: Click and drag to rotate the cube")
     print("  - Right mouse: Click to select a face")
-    print("  - R: Reset cube rotation")
-    print("  - S: Scramble cube")
+    print("  - Left mouse + drag (with face selected): Rotate selected face")
+    print("  - R: Reset cube")
     print("  - ESC: Quit")
     print("=" * 50)
     
     running = True
     try:
         while running:
-            running = renderer.handle_events(cube)  # Pass cube reference
-            renderer.render_frame(cube)  # Draws the cube
-            renderer.tick(60)  # Limits FPS
-
+            running = renderer.handle_events(cube)
+            renderer.render_frame(cube)
+            renderer.tick(60)
+    
     except KeyboardInterrupt:
         print("\n⚠️  Interrupted by user (Ctrl+C)")
     except Exception as e:
@@ -60,7 +59,8 @@ def main():
     finally:
         renderer.cleanup()
         print("\n✅ Application closed successfully")
+    
     return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main()) 

@@ -1,114 +1,182 @@
 """
-renderer.py
-
-Renderer class that handles OpenGL initialization, window management, and rendering.
+Simplified renderer that only handles rendering, without movement logic.
 """
 
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
-import numpy as np
 import config
+from cube import Cube
 
 class Renderer:
-    """
-    Handles OpenGL initialization, window management, and rendering.
-    """
-    
     def __init__(self):
-        """Initialize the renderer with OpenGL and Pygame."""
-        self.display = None
-        self.clock = None
+        """Initialize the renderer."""
         self.initialized = False
-        
-        # Mouse rotation state
-        self.mouse_pressed = False
-        self.last_mouse_pos = (0, 0)
         self.cube_rotation_x = config.INITIAL_ROTATION_X
         self.cube_rotation_y = config.INITIAL_ROTATION_Y
-        self.rotation_sensitivity = 0.5  # Adjust for faster/slower rotation
+        self.rotation_sensitivity = 0.5
+        self.clock = pygame.time.Clock()
         
-        # Face selection and rotation state
-        self.selected_face = None
-        self.face_rotation_drag = False  # True when dragging to rotate a face
-        self.face_rotation_start_pos = (0, 0)  # Starting position for face rotation
-        self.face_rotation_threshold = 50  # Minimum distance to trigger rotation
-        self.face_rotation_triggered = False  # True when rotation has been triggered
+        # Mouse interaction variables
+        self.mouse_pressed = False
+        self.last_mouse_pos = None
+        self.selected_sticker = None  # Changed from selected_face to selected_sticker
+        self.face_rotation_drag = False
+        self.face_rotation_start_pos = None
+        self.face_rotation_threshold = 30  # pixels
+        self.face_rotation_triggered = False
     
     def initialize(self):
-        """Initialize Pygame, OpenGL, and the display window."""
+        """Initialize Pygame and OpenGL."""
         pygame.init()
-        self.display = (config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
-        pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
+        pygame.display.set_mode((config.WINDOW_WIDTH, config.WINDOW_HEIGHT), DOUBLEBUF | OPENGL)
+        pygame.display.set_caption("Rubik's Cube - Simple Version")
         
-        # OpenGL setup
+        # Set up OpenGL
         glEnable(GL_DEPTH_TEST)
-        glClearColor(0.1, 0.1, 0.1, 1)
-        glDisable(GL_CULL_FACE)
+        glDisable(GL_CULL_FACE)  # Draw all faces
         
         # Set up perspective
-        gluPerspective(config.FOV, (self.display[0] / self.display[1]), 
-                      config.NEAR_PLANE, config.FAR_PLANE)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(config.FOV, config.WINDOW_WIDTH / config.WINDOW_HEIGHT, 0.1, 100.0)
         
-        # Set initial camera position and rotation
+        # Set up modelview matrix
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
         glTranslatef(0.0, 0.0, -config.CAMERA_DISTANCE)
-        glRotatef(self.cube_rotation_x, 1, 0, 0)
-        glRotatef(self.cube_rotation_y, 0, 1, 0)
         
-        self.clock = pygame.time.Clock()
         self.initialized = True
-        
-        print("✓ Renderer initialized successfully")
+        print("✓ Renderer initialized")
     
     def clear_screen(self):
-        """Clear the screen and depth buffer."""
+        """Clear the screen."""
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     
     def apply_cube_rotation(self):
-        """Apply the current cube rotation."""
-        # Reset to base position and apply current rotation
-        glLoadIdentity()
-        glTranslatef(0.0, 0.0, -config.CAMERA_DISTANCE)
+        """Apply cube rotation transformations."""
         glRotatef(self.cube_rotation_x, 1, 0, 0)
         glRotatef(self.cube_rotation_y, 0, 1, 0)
     
     def render_frame(self, cube):
-        """
-        Render a single frame.
-        
-        Args:
-            cube: RubiksCube instance to render
-        """
-        if not self.initialized:
-            raise RuntimeError("Renderer not initialized. Call initialize() first.")
-        
+        """Render a single frame."""
         self.clear_screen()
+        glLoadIdentity()
+        glTranslatef(0.0, 0.0, -config.CAMERA_DISTANCE)
         
         # Apply cube rotation
-        glPushMatrix()
-        glRotatef(self.cube_rotation_x, 1, 0, 0)
-        glRotatef(self.cube_rotation_y, 0, 1, 0)
-        
-        # Update cube's selected face
-        cube.set_selected_face(self.selected_face)
+        self.apply_cube_rotation()
         
         # Draw the cube
-        cube.draw()
+        self.draw_cube(cube)
         
-        glPopMatrix()
         pygame.display.flip()
     
-    def handle_events(self, cube):
-        """
-        Handle Pygame events.
+    def draw_cube(self, cube):
+        """Draw the cube using the simplified cube representation."""
+        # Get all stickers from all faces
+        for face in config.FACE_NAMES:
+            face_stickers = cube.get_face_stickers(face)
+            for sticker in face_stickers:
+                x, y, z = sticker.get_position()
+                color = sticker.get_color()
+                is_selected = sticker.is_sticker_selected()
+                
+                # Draw the sticker
+                self.draw_sticker(x, y, z, face, color, is_selected)
+    
+    def draw_sticker(self, x, y, z, face, color, is_selected):
+        """Draw a single sticker at the specified position."""
+        # Define sticker vertices (square)
+        vertices = [
+            (-config.STICKER_SIZE, -config.STICKER_SIZE, 0),
+            ( config.STICKER_SIZE, -config.STICKER_SIZE, 0),
+            ( config.STICKER_SIZE,  config.STICKER_SIZE, 0),
+            (-config.STICKER_SIZE,  config.STICKER_SIZE, 0),
+        ]
         
-        Args:
-            cube: RubiksCube instance to apply rotations to
+        glPushMatrix()
+        
+        # Position the sticker directly at the calculated position
+        glTranslatef(x, y, z)
+        
+        # Apply rotation based on face using the same logic as original
+        face_config = config.FACE_CONFIGS[face]
+        self.apply_face_rotation(face_config['rotation'])
+        
+        # Set color
+        if is_selected:
+            # Make selected stickers brighter
+            color_rgb = config.COLOR_RGB.get(color, config.COLOR_RGB.get(color[0], (1, 1, 1)))
+            bright_color = tuple(min(1.0, c * 1.5) for c in color_rgb)
+            glColor3fv(bright_color)
+        else:
+            color_rgb = config.COLOR_RGB.get(color, config.COLOR_RGB.get(color[0], (1, 1, 1)))
+            glColor3fv(color_rgb)
+        
+        # Draw sticker face
+        glBegin(GL_QUADS)
+        for v in vertices:
+            glVertex3fv(v)
+        glEnd()
+        
+        # Draw border using thicker lines or multiple lines
+        if is_selected:
+            glColor3f(*config.SELECTION_BORDER_COLOR)
+            border_width = config.BORDER_WIDTH * 1.5  # Slightly thicker for selected
+        else:
+            glColor3f(*config.NORMAL_BORDER_COLOR)
+            border_width = config.BORDER_WIDTH
+        
+        # Draw border as a thicker outline by drawing multiple lines
+        num_lines = max(1, int(border_width * 20))  # Scale up for visibility
+        for offset in range(num_lines):
+            offset_val = offset * 0.005  # Small offset for each line
+            border_vertices = [
+                (-config.STICKER_SIZE - offset_val, -config.STICKER_SIZE - offset_val, 0),
+                ( config.STICKER_SIZE + offset_val, -config.STICKER_SIZE - offset_val, 0),
+                ( config.STICKER_SIZE + offset_val,  config.STICKER_SIZE + offset_val, 0),
+                (-config.STICKER_SIZE - offset_val,  config.STICKER_SIZE + offset_val, 0),
+            ]
             
-        Returns:
-            bool: True if the game should continue, False if it should quit
-        """
+            glBegin(GL_LINE_LOOP)
+            for v in border_vertices:
+                glVertex3fv(v)
+            glEnd()
+        
+        glPopMatrix()
+    
+    def apply_face_rotation(self, rotation_type):
+        """Apply rotation to orient the sticker correctly for its face."""
+        # Same logic as the original working code
+        if rotation_type == 'none':
+            pass
+        elif rotation_type == '180_x':
+            glRotatef(180, 1, 0, 0)
+        elif rotation_type == '180_y':
+            glRotatef(180, 0, 1, 0)
+        elif rotation_type == '90_x':
+            glRotatef(90, 1, 0, 0)
+        elif rotation_type == '-90_x':
+            glRotatef(-90, 1, 0, 0)
+        elif rotation_type == '90_y':
+            glRotatef(90, 0, 1, 0)
+        elif rotation_type == '-90_y':
+            glRotatef(-90, 0, 1, 0)
+        elif rotation_type == '90_z':
+            glRotatef(90, 0, 0, 1)
+        elif rotation_type == '-90_z':
+            glRotatef(-90, 0, 0, 1)
+        elif rotation_type == '90_y_90_x':
+            glRotatef(90, 0, 1, 0)
+            glRotatef(90, 1, 0, 0)
+        elif rotation_type == '-90_y_90_x':
+            glRotatef(-90, 0, 1, 0)
+            glRotatef(90, 1, 0, 0)
+    
+    def handle_events(self, cube):
+        """Handle Pygame events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
@@ -116,43 +184,43 @@ class Renderer:
                 if event.key == pygame.K_ESCAPE:
                     return False
                 elif event.key == pygame.K_r:
-                    # Reset cube rotation
-                    self.cube_rotation_x = config.INITIAL_ROTATION_X
-                    self.cube_rotation_y = config.INITIAL_ROTATION_Y
-                    print("✓ Cube rotation reset")
-                elif event.key == pygame.K_s:
-                    # Scramble cube
-                    cube.scramble_cube()
-                    print("✓ Cube scrambled")
+                    cube.reset_to_solved()
+                    print("✓ Cube reset")
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button - cube rotation or face rotation
                     self.mouse_pressed = True
                     self.last_mouse_pos = event.pos
                     
                     # If a face is selected, start face rotation mode
-                    if self.selected_face:
+                    if self.selected_sticker:
                         self.face_rotation_drag = True
                         self.face_rotation_start_pos = event.pos
-                        print(f"✓ Started face rotation for {self.selected_face}")
-                elif event.button == 3:  # Right mouse button - face selection
-                    # Check if we clicked on a specific face
-                    clicked_face = self.get_clicked_face(event.pos)
-                    if clicked_face:
-                        self.selected_face = clicked_face
-                        print(f"✓ Selected face: {clicked_face}")
+                        print(f"✓ Started face rotation for {self.selected_sticker}")
+                elif event.button == 3:  # Right mouse button - sticker selection
+                    # Check if we clicked on a specific sticker
+                    clicked_sticker_info = self.get_clicked_sticker_info(event.pos, cube)
+                    if clicked_sticker_info:
+                        sticker, face, i, j = clicked_sticker_info
+                        self.selected_sticker = face
+                        cube.set_selected_face(face)
+                        print(f"✓ Selected sticker: Face {face}, Position ({i},{j})")
+                        print(f"  Color: {sticker.get_color()}")
+                        print(f"  Position: {sticker.get_position()}")
+                        print(f"  Adjacents: {sticker.get_adjacents()}")
                     else:
-                        self.selected_face = None
-                        print("No face selected")
+                        self.selected_sticker = None
+                        cube.set_selected_face(None)
+                        print("No sticker selected")
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
                     self.mouse_pressed = False
                     if self.face_rotation_drag:
                         self.face_rotation_drag = False
                         self.face_rotation_triggered = False  # Reset for next rotation
-                        print(f"✓ Finished face rotation for {self.selected_face}")
+                        print(f"✓ Finished face rotation for {self.selected_sticker}")
             elif event.type == pygame.MOUSEMOTION:
                 if self.mouse_pressed:
-                    if self.face_rotation_drag and self.selected_face:
+                    if self.face_rotation_drag and self.selected_sticker:
                         # Handle face rotation
                         dx = event.pos[0] - self.last_mouse_pos[0]
                         dy = event.pos[1] - self.last_mouse_pos[1]
@@ -179,12 +247,12 @@ class Renderer:
                                     direction = "counterclockwise"
                             
                             # Apply the rotation
-                            self.rotate_selected_face(direction, cube)
+                            cube.rotate_face(self.selected_sticker, direction)
                             self.face_rotation_triggered = True
                         
                         self.last_mouse_pos = event.pos
                     else:
-                        # Handle cube rotation (existing code)
+                        # Handle cube rotation
                         dx = event.pos[0] - self.last_mouse_pos[0]
                         dy = event.pos[1] - self.last_mouse_pos[1]
                         
@@ -212,120 +280,14 @@ class Renderer:
         """Clean up Pygame resources."""
         if self.initialized:
             pygame.quit()
-            print("✓ Renderer cleaned up")
-    
-    def resize_window(self, width, height):
-        """
-        Resize the window.
-        
-        Args:
-            width (int): New window width
-            height (int): New window height
-        """
-        if self.initialized:
-            self.display = (width, height)
-            pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
-            gluPerspective(config.FOV, (width / height), 
-                          config.NEAR_PLANE, config.FAR_PLANE)
-            print(f"✓ Window resized to {width}x{height}")
+            print("✓ Renderer cleaned up") 
 
-    def get_clicked_face(self, mouse_pos):
-        """
-        Detect which face of the cube was clicked using ray casting with cube rotation consideration.
-        
-        Args:
-            mouse_pos (tuple): Mouse position (x, y) in screen coordinates
-            
-        Returns:
-            str or None: Face name ('U', 'D', 'F', 'B', 'L', 'R') or None if no face clicked
-        """
+    def get_clicked_sticker_info(self, mouse_pos, cube):
+        """Get the sticker that was clicked by calling the cube's method."""
         # Get viewport and modelview/projection matrices
         viewport = glGetIntegerv(GL_VIEWPORT)
         modelview = glGetDoublev(GL_MODELVIEW_MATRIX)
         projection = glGetDoublev(GL_PROJECTION_MATRIX)
         
-        # Convert screen coordinates to normalized device coordinates
-        x = mouse_pos[0]
-        y = viewport[3] - mouse_pos[1]  # OpenGL uses bottom-left origin
-        z = glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT)[0][0]
-        
-        # Unproject to get world coordinates
-        world_pos = gluUnProject(x, y, z, modelview, projection, viewport)
-        
-        if world_pos is None:
-            return None
-        
-        # Transform world coordinates to account for cube rotation
-        # We need to apply the inverse of the cube rotation
-        clicked_point = np.array(world_pos)
-        
-        # Create rotation matrices for the inverse transformations
-        # Note: We apply rotations in reverse order (Y first, then X)
-        cos_y = np.cos(np.radians(-self.cube_rotation_y))
-        sin_y = np.sin(np.radians(-self.cube_rotation_y))
-        cos_x = np.cos(np.radians(-self.cube_rotation_x))
-        sin_x = np.sin(np.radians(-self.cube_rotation_x))
-        
-        # Y rotation matrix (inverse)
-        rot_y = np.array([
-            [cos_y, 0, sin_y],
-            [0, 1, 0],
-            [-sin_y, 0, cos_y]
-        ])
-        
-        # X rotation matrix (inverse)
-        rot_x = np.array([
-            [1, 0, 0],
-            [0, cos_x, -sin_x],
-            [0, sin_x, cos_x]
-        ])
-        
-        # Apply inverse rotations to get coordinates in cube's local space
-        local_point = rot_x @ rot_y @ clicked_point
-        
-        # Find the closest face to the transformed point
-        closest_face = None
-        min_distance = float('inf')
-        
-        for face in config.FACE_NAMES:
-            face_config = config.FACE_CONFIGS[face]
-            face_center = np.array(face_config['center'])
-            face_normal = np.array(face_config['normal'])
-            
-            # Calculate distance from transformed point to face plane
-            distance = abs(np.dot(local_point - face_center, face_normal))
-            
-            # Check if point is within the face bounds (3x3 sticker grid)
-            face_size = config.STICKER_SIZE * 2 + config.BORDER_WIDTH * 2
-            face_bounds = face_size / 2 + 0.2  # Increased tolerance for better detection
-            
-            # Project point onto face plane
-            to_point = local_point - face_center
-            projected_point = to_point - np.dot(to_point, face_normal) * face_normal
-            
-            # Check if projected point is within face bounds
-            if (abs(projected_point[0]) <= face_bounds and 
-                abs(projected_point[1]) <= face_bounds and 
-                abs(projected_point[2]) <= face_bounds):
-                
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_face = face
-        
-        return closest_face
-    
-    def rotate_selected_face(self, direction, cube):
-        """
-        Rotate the selected face by 90 degrees in the specified direction.
-        
-        Args:
-            direction (str): "clockwise" or "counterclockwise"
-            cube: RubiksCube instance to apply rotation to
-        """
-        if not self.selected_face:
-            return
-        
-        print(f"Rotating face {self.selected_face} {direction} by 90 degrees")
-        
-        # Call the cube's rotate_face method
-        cube.rotate_face(self.selected_face, direction)
+        # Call the cube's method to detect which sticker was clicked
+        return cube.get_clicked_sticker(mouse_pos, viewport, modelview, projection) 

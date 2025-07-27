@@ -27,7 +27,7 @@ INITIAL_ROTATION_Y = -30
 
 # Calculate derived values (these are computed automatically based on STICKER_SIZE)
 STICKER_SPACING = STICKER_SIZE * 2  # Full sticker width for adjacent placement
-BORDER_WIDTH = STICKER_SIZE * 11.67  # Border width proportional to sticker size
+BORDER_WIDTH = STICKER_SIZE * 0.4  # Border width proportional to sticker size (much smaller)
 FACE_DISTANCE = STICKER_SIZE * 3.0   # Face distance proportional to sticker size
 
 # ============================================================================
