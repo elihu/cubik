@@ -29,8 +29,12 @@ class Renderer:
         self.cube_rotation_y = config.INITIAL_ROTATION_Y
         self.rotation_sensitivity = 0.5  # Adjust for faster/slower rotation
         
-        # Face selection state
+        # Face selection and rotation state
         self.selected_face = None
+        self.face_rotation_drag = False  # True when dragging to rotate a face
+        self.face_rotation_start_pos = (0, 0)  # Starting position for face rotation
+        self.face_rotation_threshold = 50  # Minimum distance to trigger rotation
+        self.face_rotation_triggered = False  # True when rotation has been triggered
     
     def initialize(self):
         """Initialize Pygame, OpenGL, and the display window."""
@@ -95,10 +99,13 @@ class Renderer:
         glPopMatrix()
         pygame.display.flip()
     
-    def handle_events(self):
+    def handle_events(self, cube):
         """
         Handle Pygame events.
         
+        Args:
+            cube: RubiksCube instance to apply rotations to
+            
         Returns:
             bool: True if the game should continue, False if it should quit
         """
@@ -114,9 +121,15 @@ class Renderer:
                     self.cube_rotation_y = config.INITIAL_ROTATION_Y
                     print("✓ Cube rotation reset")
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Left mouse button - cube rotation
+                if event.button == 1:  # Left mouse button - cube rotation or face rotation
                     self.mouse_pressed = True
                     self.last_mouse_pos = event.pos
+                    
+                    # If a face is selected, start face rotation mode
+                    if self.selected_face:
+                        self.face_rotation_drag = True
+                        self.face_rotation_start_pos = event.pos
+                        print(f"✓ Started face rotation for {self.selected_face}")
                 elif event.button == 3:  # Right mouse button - face selection
                     # Check if we clicked on a specific face
                     clicked_face = self.get_clicked_face(event.pos)
@@ -129,22 +142,57 @@ class Renderer:
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
                     self.mouse_pressed = False
-                    self.selected_face = None
+                    if self.face_rotation_drag:
+                        self.face_rotation_drag = False
+                        self.face_rotation_triggered = False  # Reset for next rotation
+                        print(f"✓ Finished face rotation for {self.selected_face}")
             elif event.type == pygame.MOUSEMOTION:
                 if self.mouse_pressed:
-                    # Calculate mouse movement
-                    dx = event.pos[0] - self.last_mouse_pos[0]
-                    dy = event.pos[1] - self.last_mouse_pos[1]
-                    
-                    # Apply cube rotation
-                    self.cube_rotation_y += dx * self.rotation_sensitivity
-                    self.cube_rotation_x += dy * self.rotation_sensitivity
-                    
-                    # Keep rotation within reasonable bounds
-                    self.cube_rotation_x = max(-90, min(90, self.cube_rotation_x))
-                    
-                    # Update last mouse position
-                    self.last_mouse_pos = event.pos
+                    if self.face_rotation_drag and self.selected_face:
+                        # Handle face rotation
+                        dx = event.pos[0] - self.last_mouse_pos[0]
+                        dy = event.pos[1] - self.last_mouse_pos[1]
+                        
+                        # Calculate total distance moved from start position
+                        total_dx = event.pos[0] - self.face_rotation_start_pos[0]
+                        total_dy = event.pos[1] - self.face_rotation_start_pos[1]
+                        total_distance = (total_dx**2 + total_dy**2)**0.5
+                        
+                        # Check if we've moved enough to trigger rotation
+                        if total_distance > self.face_rotation_threshold and not self.face_rotation_triggered:
+                            # Determine rotation direction based on dominant movement
+                            if abs(total_dx) > abs(total_dy):
+                                # Horizontal movement dominates
+                                if total_dx > 0:
+                                    direction = "clockwise"
+                                else:
+                                    direction = "counterclockwise"
+                            else:
+                                # Vertical movement dominates
+                                if total_dy > 0:
+                                    direction = "clockwise"
+                                else:
+                                    direction = "counterclockwise"
+                            
+                            # Apply the rotation
+                            self.rotate_selected_face(direction, cube)
+                            self.face_rotation_triggered = True
+                        
+                        self.last_mouse_pos = event.pos
+                    else:
+                        # Handle cube rotation (existing code)
+                        dx = event.pos[0] - self.last_mouse_pos[0]
+                        dy = event.pos[1] - self.last_mouse_pos[1]
+                        
+                        # Apply cube rotation
+                        self.cube_rotation_y += dx * self.rotation_sensitivity
+                        self.cube_rotation_x += dy * self.rotation_sensitivity
+                        
+                        # Keep rotation within reasonable bounds
+                        self.cube_rotation_x = max(-90, min(90, self.cube_rotation_x))
+                        
+                        # Update last mouse position
+                        self.last_mouse_pos = event.pos
         
         return True
     
@@ -261,3 +309,19 @@ class Renderer:
                     closest_face = face
         
         return closest_face
+    
+    def rotate_selected_face(self, direction, cube):
+        """
+        Rotate the selected face by 90 degrees in the specified direction.
+        
+        Args:
+            direction (str): "clockwise" or "counterclockwise"
+            cube: RubiksCube instance to apply rotation to
+        """
+        if not self.selected_face:
+            return
+        
+        print(f"Rotating face {self.selected_face} {direction} by 90 degrees")
+        
+        # Call the cube's rotate_face method
+        cube.rotate_face(self.selected_face, direction)

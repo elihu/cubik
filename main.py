@@ -45,25 +45,20 @@ def main():
     running = True
     try:
         while running:
-            # Handle events
-            running = renderer.handle_events()
-            
-            # Render frame
-            renderer.render_frame(cube)
-            
-            # Limit frame rate
-            renderer.tick(60)
-            
+            running = renderer.handle_events(cube)  # Pass cube reference
+            renderer.render_frame(cube)  # Draws the cube
+            renderer.tick(60)  # Limits FPS
+
     except KeyboardInterrupt:
         print("\n⚠️  Interrupted by user (Ctrl+C)")
     except Exception as e:
         print(f"\n❌ Error in game loop: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
     finally:
-        # Cleanup
         renderer.cleanup()
         print("\n✅ Application closed successfully")
-    
     return 0
 
 if __name__ == "__main__":

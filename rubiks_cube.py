@@ -239,3 +239,54 @@ class RubiksCube:
             face_name (str or None): Face name ('U', 'D', 'F', 'B', 'L', 'R') or None to clear selection
         """
         self.selected_face = face_name
+    
+    def rotate_face(self, face_name, direction):
+        """
+        Rotate a face by 90 degrees in the specified direction.
+        
+        Args:
+            face_name (str): Face name ('U', 'D', 'F', 'B', 'L', 'R')
+            direction (str): "clockwise" or "counterclockwise"
+        """
+        if face_name not in self.cube_stickers:
+            print(f"❌ Invalid face name: {face_name}")
+            return
+        
+        print(f"🔄 Rotating face {face_name} {direction}")
+        
+        # Get the stickers for this face
+        face_data = self.cube_stickers[face_name]
+        stickers = face_data['stickers']
+        
+        # Create a 3x3 matrix of sticker colors
+        matrix = [[None for _ in range(3)] for _ in range(3)]
+        for (i, j), sticker_data in stickers.items():
+            matrix[i][j] = sticker_data['color']
+        
+        # Print original matrix
+        print(f"Original {face_name} face:")
+        for row in matrix:
+            print(f"  {row}")
+        
+        # Rotate the matrix
+        if direction == "clockwise":
+            # Rotate 90 degrees clockwise
+            rotated_matrix = list(zip(*matrix[::-1]))  # Transpose and reverse rows
+        else:  # counterclockwise
+            # Rotate 90 degrees counterclockwise
+            rotated_matrix = list(zip(*matrix))[::-1]  # Transpose and reverse columns
+        
+        # Print rotated matrix
+        print(f"Rotated {face_name} face:")
+        for row in rotated_matrix:
+            print(f"  {row}")
+        
+        # Update the stickers with new colors
+        for i in range(3):
+            for j in range(3):
+                stickers[(i, j)]['color'] = rotated_matrix[i][j]
+        
+        print(f"✅ Face {face_name} rotated {direction}")
+        
+        # TODO: Also update adjacent faces' edge stickers
+        # This is a simplified version - we'll add edge updates later
