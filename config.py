@@ -82,3 +82,7 @@ BORDER_WIDTH_MIN = 1
 BORDER_WIDTH_MAX = 10
 FACE_DISTANCE_MIN = 0.5
 FACE_DISTANCE_MAX = 5.0 
+
+# Selection highlighting colors
+SELECTION_BORDER_COLOR = (1, 0.8, 0)  # Gold border for selected face
+NORMAL_BORDER_COLOR = (0.2, 0.2, 0.2)  # Dark gray for normal faces 

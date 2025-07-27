@@ -22,13 +22,14 @@ class RubiksCube:
         Args:
             sticker_size (float, optional): Size of stickers. If None, uses config default.
         """
+        self.selected_face = None  # Track which face is currently selected
         self.sticker_size = sticker_size or config.STICKER_SIZE
         self.cube_stickers = {}
         self.printed_stickers = set()
         self.printed_rotation_logs = set()
         
         # Update config if custom sticker size provided
-        if sticker_size and sticker_size != config.STICKER_SIZE:
+        if sticker_size is not None:
             self._update_config_sticker_size(sticker_size)
         
         # Generate the cube
@@ -156,22 +157,26 @@ class RubiksCube:
         face_data = self.cube_stickers[face]
         self.apply_rotation(face_data['rotation'])
         
-        # Debug print (only once per sticker)
-        key = (face, i, j)
-        if key not in self.printed_stickers:
-            print(f"Sticker {face}[{i},{j}] at ({x:.2f}, {y:.2f}, {z:.2f})")
-            self.printed_stickers.add(key)
-        
         # Draw sticker color
-        glColor3fv(config.COLOR_RGB[color])
+        if face == self.selected_face:
+            # Make stickers much brighter for selected face (exaggerated for debug)
+            color_rgb = config.COLOR_RGB[color]
+            bright_color = tuple(min(1.0, c * 2.0) for c in color_rgb)  # 100% brighter for debug
+            glColor3fv(bright_color)
+        else:
+            glColor3fv(config.COLOR_RGB[color])
         glBegin(GL_QUADS)
         for v in vertices:
             glVertex3fv(v)
         glEnd()
         
         # Draw black border for separation
-        glColor3f(0, 0, 0)
-        glLineWidth(config.BORDER_WIDTH)
+        if face == self.selected_face:
+            glColor3f(*config.SELECTION_BORDER_COLOR)  # Gold border for selected face
+            glLineWidth(config.BORDER_WIDTH * 3)  # Thicker border for selected face
+        else:
+            glColor3f(*config.NORMAL_BORDER_COLOR)  # Dark gray border for normal faces
+            glLineWidth(config.BORDER_WIDTH)
         glBegin(GL_LINE_LOOP)
         for v in vertices:
             glVertex3fv(v)
@@ -225,3 +230,12 @@ class RubiksCube:
         """Reset the cube to its solved state."""
         self.generate_cube()
         print("✓ Cube reset to solved state")
+    
+    def set_selected_face(self, face_name):
+        """
+        Set which face is currently selected for highlighting.
+        
+        Args:
+            face_name (str or None): Face name ('U', 'D', 'F', 'B', 'L', 'R') or None to clear selection
+        """
+        self.selected_face = face_name

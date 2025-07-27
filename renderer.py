@@ -8,6 +8,7 @@ import pygame
 from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
+import numpy as np
 import config
 
 class Renderer:
@@ -85,6 +86,10 @@ class Renderer:
         glRotatef(self.cube_rotation_x, 1, 0, 0)
         glRotatef(self.cube_rotation_y, 0, 1, 0)
         
+        # Update cube's selected face
+        cube.set_selected_face(self.selected_face)
+        
+        # Draw the cube
         cube.draw()
         
         glPopMatrix()
@@ -174,7 +179,7 @@ class Renderer:
 
     def get_clicked_face(self, mouse_pos):
         """
-        Detect which face of the cube was clicked using a simpler approach.
+        Detect which face of the cube was clicked using ray casting with cube rotation consideration.
         
         Args:
             mouse_pos (tuple): Mouse position (x, y) in screen coordinates
@@ -182,33 +187,77 @@ class Renderer:
         Returns:
             str or None: Face name ('U', 'D', 'F', 'B', 'L', 'R') or None if no face clicked
         """
-        # Get screen center
-        screen_center_x = self.display[0] // 2
-        screen_center_y = self.display[1] // 2
+        # Get viewport and modelview/projection matrices
+        viewport = glGetIntegerv(GL_VIEWPORT)
+        modelview = glGetDoublev(GL_MODELVIEW_MATRIX)
+        projection = glGetDoublev(GL_PROJECTION_MATRIX)
         
-        # Calculate relative position from center
-        rel_x = mouse_pos[0] - screen_center_x
-        rel_y = mouse_pos[1] - screen_center_y
+        # Convert screen coordinates to normalized device coordinates
+        x = mouse_pos[0]
+        y = viewport[3] - mouse_pos[1]  # OpenGL uses bottom-left origin
+        z = glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT)[0][0]
         
-        # Normalize to -1 to 1 range
-        norm_x = rel_x / screen_center_x
-        norm_y = rel_y / screen_center_y
+        # Unproject to get world coordinates
+        world_pos = gluUnProject(x, y, z, modelview, projection, viewport)
         
-        # Simple face detection based on screen position
-        # This is a basic approximation - we'll refine it later
-        if abs(norm_x) < 0.3 and abs(norm_y) < 0.3:
-            # Center area - could be front or back face
-            if norm_y > 0:
-                return 'F'  # Front face
-            else:
-                return 'B'  # Back face
-        elif norm_x > 0.3:
-            return 'R'  # Right face
-        elif norm_x < -0.3:
-            return 'L'  # Left face
-        elif norm_y > 0.3:
-            return 'U'  # Up face
-        elif norm_y < -0.3:
-            return 'D'  # Down face
+        if world_pos is None:
+            return None
         
-        return None
+        # Transform world coordinates to account for cube rotation
+        # We need to apply the inverse of the cube rotation
+        clicked_point = np.array(world_pos)
+        
+        # Create rotation matrices for the inverse transformations
+        # Note: We apply rotations in reverse order (Y first, then X)
+        cos_y = np.cos(np.radians(-self.cube_rotation_y))
+        sin_y = np.sin(np.radians(-self.cube_rotation_y))
+        cos_x = np.cos(np.radians(-self.cube_rotation_x))
+        sin_x = np.sin(np.radians(-self.cube_rotation_x))
+        
+        # Y rotation matrix (inverse)
+        rot_y = np.array([
+            [cos_y, 0, sin_y],
+            [0, 1, 0],
+            [-sin_y, 0, cos_y]
+        ])
+        
+        # X rotation matrix (inverse)
+        rot_x = np.array([
+            [1, 0, 0],
+            [0, cos_x, -sin_x],
+            [0, sin_x, cos_x]
+        ])
+        
+        # Apply inverse rotations to get coordinates in cube's local space
+        local_point = rot_x @ rot_y @ clicked_point
+        
+        # Find the closest face to the transformed point
+        closest_face = None
+        min_distance = float('inf')
+        
+        for face in config.FACE_NAMES:
+            face_config = config.FACE_CONFIGS[face]
+            face_center = np.array(face_config['center'])
+            face_normal = np.array(face_config['normal'])
+            
+            # Calculate distance from transformed point to face plane
+            distance = abs(np.dot(local_point - face_center, face_normal))
+            
+            # Check if point is within the face bounds (3x3 sticker grid)
+            face_size = config.STICKER_SIZE * 2 + config.BORDER_WIDTH * 2
+            face_bounds = face_size / 2 + 0.2  # Increased tolerance for better detection
+            
+            # Project point onto face plane
+            to_point = local_point - face_center
+            projected_point = to_point - np.dot(to_point, face_normal) * face_normal
+            
+            # Check if projected point is within face bounds
+            if (abs(projected_point[0]) <= face_bounds and 
+                abs(projected_point[1]) <= face_bounds and 
+                abs(projected_point[2]) <= face_bounds):
+                
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_face = face
+        
+        return closest_face
