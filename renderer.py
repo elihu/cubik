@@ -120,6 +120,10 @@ class Renderer:
                     self.cube_rotation_x = config.INITIAL_ROTATION_X
                     self.cube_rotation_y = config.INITIAL_ROTATION_Y
                     print("✓ Cube rotation reset")
+                elif event.key == pygame.K_s:
+                    # Scramble cube
+                    cube.scramble_cube()
+                    print("✓ Cube scrambled")
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button - cube rotation or face rotation
                     self.mouse_pressed = True

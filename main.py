@@ -39,6 +39,7 @@ def main():
     print("  - Left mouse: Click and drag to rotate the cube")
     print("  - Right mouse: Click to select a face")
     print("  - R: Reset cube rotation")
+    print("  - S: Scramble cube")
     print("  - ESC: Quit")
     print("=" * 50)
     

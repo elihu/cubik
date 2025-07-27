@@ -71,6 +71,17 @@ FACE_CONFIGS = {
     'R': {'center': (FACE_DISTANCE, 0, 0), 'normal': (1, 0, 0), 'rotation': '90_y'},
 }
 
+# Face adjacency relationships - simplified and corrected
+# Each entry defines which edges are shared between faces
+FACE_ADJACENCIES = {
+    'U': {
+        'F': {'edge': [('U', 2, 0), ('U', 2, 1), ('U', 2, 2)], 'adjacent_edge': [('F', 0, 0), ('F', 0, 1), ('F', 0, 2)]},
+        'B': {'edge': [('U', 0, 0), ('U', 0, 1), ('U', 0, 2)], 'adjacent_edge': [('B', 0, 0), ('B', 0, 1), ('B', 0, 2)]},
+        'L': {'edge': [('U', 0, 0), ('U', 1, 0), ('U', 2, 0)], 'adjacent_edge': [('L', 0, 0), ('L', 1, 0), ('L', 2, 0)]},
+        'R': {'edge': [('U', 0, 2), ('U', 1, 2), ('U', 2, 2)], 'adjacent_edge': [('R', 0, 0), ('R', 1, 0), ('R', 2, 0)]}
+    }
+}
+
 # ============================================================================
 # VALIDATION RANGES
 # ============================================================================

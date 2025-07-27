@@ -226,6 +226,24 @@ class RubiksCube:
         """Get the current state of the cube."""
         return self.cube_stickers.copy()
     
+    def scramble_cube(self):
+        """Scramble the cube by performing random rotations."""
+        import random
+        
+        faces = ['U', 'D', 'F', 'B', 'L', 'R']
+        directions = ['clockwise', 'counterclockwise']
+        
+        print("🔄 Scrambling cube...")
+        
+        # Perform 10 random rotations
+        for i in range(10):
+            face = random.choice(faces)
+            direction = random.choice(directions)
+            print(f"  Rotation {i+1}: {face} {direction}")
+            self.rotate_face(face, direction)
+        
+        print("✅ Cube scrambled")
+    
     def reset_to_solved(self):
         """Reset the cube to its solved state."""
         self.generate_cube()
@@ -263,23 +281,13 @@ class RubiksCube:
         for (i, j), sticker_data in stickers.items():
             matrix[i][j] = sticker_data['color']
         
-        # Print original matrix
-        print(f"Original {face_name} face:")
-        for row in matrix:
-            print(f"  {row}")
-        
         # Rotate the matrix
         if direction == "clockwise":
-            # Rotate 90 degrees clockwise
-            rotated_matrix = list(zip(*matrix[::-1]))  # Transpose and reverse rows
-        else:  # counterclockwise
-            # Rotate 90 degrees counterclockwise
+            # Rotate 90 degrees counterclockwise (inverted for visual consistency)
             rotated_matrix = list(zip(*matrix))[::-1]  # Transpose and reverse columns
-        
-        # Print rotated matrix
-        print(f"Rotated {face_name} face:")
-        for row in rotated_matrix:
-            print(f"  {row}")
+        else:  # counterclockwise
+            # Rotate 90 degrees clockwise (inverted for visual consistency)
+            rotated_matrix = list(zip(*matrix[::-1]))  # Transpose and reverse rows
         
         # Update the stickers with new colors
         for i in range(3):
@@ -288,5 +296,234 @@ class RubiksCube:
         
         print(f"✅ Face {face_name} rotated {direction}")
         
-        # TODO: Also update adjacent faces' edge stickers
-        # This is a simplified version - we'll add edge updates later
+        # Update adjacent faces to maintain cube consistency
+        self.update_adjacent_faces(face_name, direction)
+    
+    def get_sticker_color(self, face, i, j):
+        """
+        Get the color of a sticker at a specific position.
+        
+        Args:
+            face (str): Face name
+            i, j (int): Position in the face (0-2, 0-2)
+            
+        Returns:
+            str: Color letter or None if not found
+        """
+        if face in self.cube_stickers and (i, j) in self.cube_stickers[face]['stickers']:
+            return self.cube_stickers[face]['stickers'][(i, j)]['color']
+        return None
+    
+    def set_sticker_color(self, face, i, j, color):
+        """
+        Set the color of a sticker at a specific position.
+        
+        Args:
+            face (str): Face name
+            i, j (int): Position in the face (0-2, 0-2)
+            color (str): Color letter
+        """
+        if face in self.cube_stickers and (i, j) in self.cube_stickers[face]['stickers']:
+            self.cube_stickers[face]['stickers'][(i, j)]['color'] = color
+    
+    def update_adjacent_faces(self, rotated_face, direction):
+        """
+        Update the adjacent faces when a face is rotated.
+        Currently handles U (Up) and F (Front) face rotations.
+        
+        Args:
+            rotated_face (str): The face that was rotated
+            direction (str): "clockwise" or "counterclockwise"
+        """
+        if rotated_face == 'U':
+            self._update_adjacent_faces_U(direction)
+        elif rotated_face == 'F':
+            self._update_adjacent_faces_F(direction)
+        else:
+            print(f"⚠️  Adjacent face updates only implemented for U and F faces, skipping {rotated_face}")
+    
+    def _update_adjacent_faces_U(self, direction):
+        """Update adjacent faces for U face rotation."""
+        print(f"🔄 Updating adjacent faces for U rotation")
+        
+        # For U face rotation, we need to update the top edges of F, B, L, R faces
+        # The order depends on rotation direction
+        
+        if direction == "clockwise":
+            # F -> L -> B -> R -> F (inverted for visual consistency)
+            # Save F top edge
+            f_top = [
+                self.get_sticker_color('F', 0, 0),
+                self.get_sticker_color('F', 0, 1),
+                self.get_sticker_color('F', 0, 2)
+            ]
+            
+            # L top -> F top
+            self.set_sticker_color('F', 0, 0, self.get_sticker_color('L', 0, 0))
+            self.set_sticker_color('F', 0, 1, self.get_sticker_color('L', 0, 1))
+            self.set_sticker_color('F', 0, 2, self.get_sticker_color('L', 0, 2))
+            
+            # B top -> L top
+            self.set_sticker_color('L', 0, 0, self.get_sticker_color('B', 0, 0))
+            self.set_sticker_color('L', 0, 1, self.get_sticker_color('B', 0, 1))
+            self.set_sticker_color('L', 0, 2, self.get_sticker_color('B', 0, 2))
+            
+            # R top -> B top
+            self.set_sticker_color('B', 0, 0, self.get_sticker_color('R', 0, 0))
+            self.set_sticker_color('B', 0, 1, self.get_sticker_color('R', 0, 1))
+            self.set_sticker_color('B', 0, 2, self.get_sticker_color('R', 0, 2))
+            
+            # Saved F top -> R top
+            self.set_sticker_color('R', 0, 0, f_top[0])
+            self.set_sticker_color('R', 0, 1, f_top[1])
+            self.set_sticker_color('R', 0, 2, f_top[2])
+            
+        else:  # counterclockwise
+            # F -> R -> B -> L -> F (inverted for visual consistency)
+            # Save F top edge
+            f_top = [
+                self.get_sticker_color('F', 0, 0),
+                self.get_sticker_color('F', 0, 1),
+                self.get_sticker_color('F', 0, 2)
+            ]
+            
+            # R top -> F top
+            self.set_sticker_color('F', 0, 0, self.get_sticker_color('R', 0, 0))
+            self.set_sticker_color('F', 0, 1, self.get_sticker_color('R', 0, 1))
+            self.set_sticker_color('F', 0, 2, self.get_sticker_color('R', 0, 2))
+            
+            # B top -> R top
+            self.set_sticker_color('R', 0, 0, self.get_sticker_color('B', 0, 0))
+            self.set_sticker_color('R', 0, 1, self.get_sticker_color('B', 0, 1))
+            self.set_sticker_color('R', 0, 2, self.get_sticker_color('B', 0, 2))
+            
+            # L top -> B top
+            self.set_sticker_color('B', 0, 0, self.get_sticker_color('L', 0, 0))
+            self.set_sticker_color('B', 0, 1, self.get_sticker_color('L', 0, 1))
+            self.set_sticker_color('B', 0, 2, self.get_sticker_color('L', 0, 2))
+            
+            # Saved F top -> L top
+            self.set_sticker_color('L', 0, 0, f_top[0])
+            self.set_sticker_color('L', 0, 1, f_top[1])
+            self.set_sticker_color('L', 0, 2, f_top[2])
+        
+        print(f"✅ Adjacent faces updated for U {direction} rotation")
+    
+    def _update_adjacent_faces_F(self, direction):
+        """Update adjacent faces for F face rotation."""
+        print(f"🔄 Updating adjacent faces for F rotation")
+        
+        # For F face rotation, we need to update the edges that are directly connected to F
+        # The order depends on rotation direction
+        
+        if direction == "clockwise":
+            # Clockwise F rotation: 
+            # U bottom edge -> R right edge (adjacent to F)
+            # R right edge -> D bottom edge (adjacent to F)
+            # D bottom edge -> L right edge (adjacent to F)
+            # L right edge -> U bottom edge (adjacent to F)
+            
+            # Save U bottom edge (row 2)
+            u_bottom = [
+                self.get_sticker_color('U', 2, 0),
+                self.get_sticker_color('U', 2, 1),
+                self.get_sticker_color('U', 2, 2)
+            ]
+            
+            # Save R right edge (column 2) - adjacent to F
+            r_right = [
+                self.get_sticker_color('R', 0, 2),
+                self.get_sticker_color('R', 1, 2),
+                self.get_sticker_color('R', 2, 2)
+            ]
+            
+            # Save D bottom edge (row 2) - adjacent to F
+            d_bottom = [
+                self.get_sticker_color('D', 2, 0),
+                self.get_sticker_color('D', 2, 1),
+                self.get_sticker_color('D', 2, 2)
+            ]
+            
+            # Save L right edge (column 2) - adjacent to F
+            l_right = [
+                self.get_sticker_color('L', 0, 2),
+                self.get_sticker_color('L', 1, 2),
+                self.get_sticker_color('L', 2, 2)
+            ]
+            
+            # Move U bottom -> R right (inverted: row to column)
+            self.set_sticker_color('R', 0, 2, u_bottom[2])  # U(2,2) -> R(0,2)
+            self.set_sticker_color('R', 1, 2, u_bottom[1])  # U(2,1) -> R(1,2)
+            self.set_sticker_color('R', 2, 2, u_bottom[0])  # U(2,0) -> R(2,2)
+            
+            # Move R right -> D bottom (inverted: column to row)
+            self.set_sticker_color('D', 2, 0, r_right[2])    # R(2,2) -> D(2,0)
+            self.set_sticker_color('D', 2, 1, r_right[1])    # R(1,2) -> D(2,1)
+            self.set_sticker_color('D', 2, 2, r_right[0])    # R(0,2) -> D(2,2)
+            
+            # Move D bottom -> L right (inverted: row to column)
+            self.set_sticker_color('L', 0, 2, d_bottom[2])   # D(2,2) -> L(0,2)
+            self.set_sticker_color('L', 1, 2, d_bottom[1])   # D(2,1) -> L(1,2)
+            self.set_sticker_color('L', 2, 2, d_bottom[0])   # D(2,0) -> L(2,2)
+            
+            # Move L right -> U bottom (inverted: column to row)
+            self.set_sticker_color('U', 2, 0, l_right[2])     # L(2,2) -> U(2,0)
+            self.set_sticker_color('U', 2, 1, l_right[1])     # L(1,2) -> U(2,1)
+            self.set_sticker_color('U', 2, 2, l_right[0])     # L(0,2) -> U(2,2)
+            
+        else:  # counterclockwise
+            # Counterclockwise F rotation: 
+            # U bottom edge -> L right edge (adjacent to F)
+            # L right edge -> D bottom edge (adjacent to F)
+            # D bottom edge -> R right edge (adjacent to F)
+            # R right edge -> U bottom edge (adjacent to F)
+            
+            # Save U bottom edge (row 2)
+            u_bottom = [
+                self.get_sticker_color('U', 2, 0),
+                self.get_sticker_color('U', 2, 1),
+                self.get_sticker_color('U', 2, 2)
+            ]
+            
+            # Save L right edge (column 2) - adjacent to F
+            l_right = [
+                self.get_sticker_color('L', 0, 2),
+                self.get_sticker_color('L', 1, 2),
+                self.get_sticker_color('L', 2, 2)
+            ]
+            
+            # Save D bottom edge (row 2) - adjacent to F
+            d_bottom = [
+                self.get_sticker_color('D', 2, 0),
+                self.get_sticker_color('D', 2, 1),
+                self.get_sticker_color('D', 2, 2)
+            ]
+            
+            # Save R right edge (column 2) - adjacent to F
+            r_right = [
+                self.get_sticker_color('R', 0, 2),
+                self.get_sticker_color('R', 1, 2),
+                self.get_sticker_color('R', 2, 2)
+            ]
+            
+            # Move U bottom -> L right (inverted: row to column)
+            self.set_sticker_color('L', 0, 2, u_bottom[0])  # U(2,0) -> L(0,2)
+            self.set_sticker_color('L', 1, 2, u_bottom[1])  # U(2,1) -> L(1,2)
+            self.set_sticker_color('L', 2, 2, u_bottom[2])  # U(2,2) -> L(2,2)
+            
+            # Move L right -> D bottom (inverted: column to row)
+            self.set_sticker_color('D', 2, 0, l_right[0])     # L(0,2) -> D(2,0)
+            self.set_sticker_color('D', 2, 1, l_right[1])     # L(1,2) -> D(2,1)
+            self.set_sticker_color('D', 2, 2, l_right[2])     # L(2,2) -> D(2,2)
+            
+            # Move D bottom -> R right (inverted: row to column)
+            self.set_sticker_color('R', 0, 2, d_bottom[0])   # D(2,0) -> R(0,2)
+            self.set_sticker_color('R', 1, 2, d_bottom[1])   # D(2,1) -> R(1,2)
+            self.set_sticker_color('R', 2, 2, d_bottom[2])   # D(2,2) -> R(2,2)
+            
+            # Move R right -> U bottom (inverted: column to row)
+            self.set_sticker_color('U', 2, 0, r_right[0])    # R(0,2) -> U(2,0)
+            self.set_sticker_color('U', 2, 1, r_right[1])    # R(1,2) -> U(2,1)
+            self.set_sticker_color('U', 2, 2, r_right[2])    # R(2,2) -> U(2,2)
+        
+        print(f"✅ Adjacent faces updated for F {direction} rotation")
