@@ -85,6 +85,9 @@ class Renderer:
                     color = sticker.get_color()
                     is_selected = sticker.is_sticker_selected()
                     
+                    # Debug: Log the color being rendered for this position (only for R face to avoid spam)
+                    # Removed debug logging from render loop to avoid spam
+                    
                     # Draw the sticker
                     self.draw_sticker(x, y, z, face, color, is_selected)
     
@@ -110,11 +113,15 @@ class Renderer:
         # Set color
         if is_selected:
             # Make selected stickers brighter
-            color_rgb = config.COLOR_RGB.get(color, config.COLOR_RGB.get(color[0], (1, 1, 1)))
+            # Extract the base color (first character) from the sticker color
+            base_color = color[0] if len(color) > 0 else 'W'
+            color_rgb = config.COLOR_RGB.get(base_color, (1, 1, 1))
             bright_color = tuple(min(1.0, c * 1.5) for c in color_rgb)
             glColor3fv(bright_color)
         else:
-            color_rgb = config.COLOR_RGB.get(color, config.COLOR_RGB.get(color[0], (1, 1, 1)))
+            # Extract the base color (first character) from the sticker color
+            base_color = color[0] if len(color) > 0 else 'W'
+            color_rgb = config.COLOR_RGB.get(base_color, (1, 1, 1))
             glColor3fv(color_rgb)
         
         # Draw sticker face

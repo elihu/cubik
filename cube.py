@@ -72,11 +72,23 @@ class Cube:
         
         # Apply mapping based on face
         if face in ['U', 'D']:
-            map_x, map_y, map_z = offset_j, 0, offset_i
+            # For D face, invert the row mapping (i) to fix visual representation
+            if face == 'D':
+                map_x, map_y, map_z = offset_j, 0, -offset_i  # Note the -offset_i
+            else:
+                map_x, map_y, map_z = offset_j, 0, offset_i
         elif face in ['F', 'B']:
-            map_x, map_y, map_z = offset_j, -offset_i, 0
+            # For B face, invert the column mapping (j) to fix visual representation
+            if face == 'B':
+                map_x, map_y, map_z = -offset_j, -offset_i, 0  # Note the -offset_j
+            else:
+                map_x, map_y, map_z = offset_j, -offset_i, 0
         elif face in ['L', 'R']:
-            map_x, map_y, map_z = 0, -offset_i, offset_j
+            # For R face, invert the column mapping (j) to fix visual representation
+            if face == 'R':
+                map_x, map_y, map_z = 0, -offset_i, -offset_j  # Note the -offset_j
+            else:
+                map_x, map_y, map_z = 0, -offset_i, offset_j
         
         return (center_x + map_x, center_y + map_y, center_z + map_z)
     
@@ -120,6 +132,16 @@ class Cube:
                     color = self.cube[face][i][j]
                     sticker = self.sticker_objects[face][i][j]
                     sticker.set_color(color)
+        
+        # Debug: Print rendering state for R, B, and D faces after update
+        for debug_face in ['R', 'B', 'D']:
+            logger.debug(f"🎨 {debug_face} face rendering state after update:")
+            for i in range(3):
+                for j in range(3):
+                    sticker = self.sticker_objects[debug_face][i][j]
+                    color = sticker.get_color()
+                    x, y, z = sticker.get_position()
+                    logger.debug(f"  {debug_face}[{i}][{j}] -> color: '{color}' at pos ({x:.2f}, {y:.2f}, {z:.2f})")
     
     def print_cube_state(self):
         """Print the current state of the cube in a visual format."""
@@ -128,8 +150,12 @@ class Cube:
         
         for face in config.FACE_NAMES:
             logger.debug(f"{face} face:")
-            for row in self.cube[face]:
-                logger.debug(f"  {row}")
+            for i, row in enumerate(self.cube[face]):
+                # Create row with position information
+                position_row = []
+                for j, color in enumerate(row):
+                    position_row.append(f"{i}.{j}-{color}")
+                logger.debug(f"  {position_row}")
         
         logger.debug(f"String representation: {self.toString()}")
         logger.debug("=" * 50)
