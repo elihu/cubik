@@ -78,8 +78,8 @@ class Renderer:
         """Draw the cube using the simplified cube representation."""
         # Get all stickers from all faces using the new structure
         for face in config.FACE_NAMES:
-            for i in range(3):
-                for j in range(3):
+            for i in range(cube.size):
+                for j in range(cube.size):
                     sticker = cube.sticker_objects[face][i][j]
                     x, y, z = sticker.get_position()
                     color = sticker.get_color()

@@ -3,6 +3,7 @@ Main entry point for the simplified Rubik's Cube application.
 """
 
 import sys
+import config
 from cube import Cube
 from renderer import Renderer
 from utils import logger
@@ -14,8 +15,8 @@ def main():
     
     # Initialize cube
     try:
-        cube = Cube(size=3)
-        logger.info("✓ Rubik's Cube initialized")
+        cube = Cube()  # Uses config.CUBE_SIZE
+        logger.info(f"✓ {config.CUBE_SIZE}x{config.CUBE_SIZE} Rubik's Cube initialized")
     except Exception as e:
         logger.error(f"❌ Failed to initialize cube: {e}")
         import traceback

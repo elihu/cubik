@@ -8,6 +8,9 @@ Configuration file containing all constants and static values for the Rubik's Cu
 # CUBE CONFIGURATION
 # ============================================================================
 
+# Cube size configuration
+CUBE_SIZE = 3              # Size of the cube (2 for 2x2, 3 for 3x3, etc.)
+
 # Main cube parameter - all other dimensions are calculated from this
 STICKER_SIZE = 0.5           # Size of each sticker (0.0 to 1.0) - MAIN PARAMETER
 
@@ -28,7 +31,7 @@ INITIAL_ROTATION_Y = -30
 # Calculate derived values (these are computed automatically based on STICKER_SIZE)
 STICKER_SPACING = STICKER_SIZE * 2  # Full sticker width for adjacent placement
 BORDER_WIDTH = STICKER_SIZE * 0.4  # Border width proportional to sticker size (much smaller)
-FACE_DISTANCE = STICKER_SIZE * 3.0   # Face distance proportional to sticker size
+FACE_DISTANCE = STICKER_SIZE * CUBE_SIZE    # Face distance proportional to cube size
 
 # ============================================================================
 # COLOR DEFINITIONS
