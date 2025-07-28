@@ -8,6 +8,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 import config
 from cube import Cube
+from utils import logger
 
 class Renderer:
     def __init__(self):
@@ -48,7 +49,7 @@ class Renderer:
         glTranslatef(0.0, 0.0, -config.CAMERA_DISTANCE)
         
         self.initialized = True
-        print("✓ Renderer initialized")
+        logger.info("🎮 Renderer initialized")
     
     def clear_screen(self):
         """Clear the screen."""
@@ -75,16 +76,17 @@ class Renderer:
     
     def draw_cube(self, cube):
         """Draw the cube using the simplified cube representation."""
-        # Get all stickers from all faces
+        # Get all stickers from all faces using the new structure
         for face in config.FACE_NAMES:
-            face_stickers = cube.get_face_stickers(face)
-            for sticker in face_stickers:
-                x, y, z = sticker.get_position()
-                color = sticker.get_color()
-                is_selected = sticker.is_sticker_selected()
-                
-                # Draw the sticker
-                self.draw_sticker(x, y, z, face, color, is_selected)
+            for i in range(3):
+                for j in range(3):
+                    sticker = cube.sticker_objects[face][i][j]
+                    x, y, z = sticker.get_position()
+                    color = sticker.get_color()
+                    is_selected = sticker.is_sticker_selected()
+                    
+                    # Draw the sticker
+                    self.draw_sticker(x, y, z, face, color, is_selected)
     
     def draw_sticker(self, x, y, z, face, color, is_selected):
         """Draw a single sticker at the specified position."""
@@ -185,7 +187,9 @@ class Renderer:
                     return False
                 elif event.key == pygame.K_r:
                     cube.reset_to_solved()
-                    print("✓ Cube reset")
+                    logger.info("✓ Cube reset")
+                elif event.key == pygame.K_d:
+                    logger.toggle_debug()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button - cube rotation or face rotation
                     self.mouse_pressed = True
@@ -195,7 +199,7 @@ class Renderer:
                     if self.selected_sticker:
                         self.face_rotation_drag = True
                         self.face_rotation_start_pos = event.pos
-                        print(f"✓ Started face rotation for {self.selected_sticker}")
+                        logger.info(f"🔄 Started face rotation for {self.selected_sticker}")
                 elif event.button == 3:  # Right mouse button - sticker selection
                     # Check if we clicked on a specific sticker
                     clicked_sticker_info = self.get_clicked_sticker_info(event.pos, cube)
@@ -203,21 +207,20 @@ class Renderer:
                         sticker, face, i, j = clicked_sticker_info
                         self.selected_sticker = face
                         cube.set_selected_face(face)
-                        print(f"✓ Selected sticker: Face {face}, Position ({i},{j})")
-                        print(f"  Color: {sticker.get_color()}")
-                        print(f"  Position: {sticker.get_position()}")
-                        print(f"  Adjacents: {sticker.get_adjacents()}")
+                        logger.info(f"🎯 Selected sticker: Face {face}, Position ({i},{j})")
+                        logger.debug(f"Color: {sticker.get_color()}")
+                        logger.debug(f"Position: {sticker.get_position()}")
                     else:
                         self.selected_sticker = None
                         cube.set_selected_face(None)
-                        print("No sticker selected")
+                        logger.info("❌ No sticker selected")
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
                     self.mouse_pressed = False
                     if self.face_rotation_drag:
                         self.face_rotation_drag = False
                         self.face_rotation_triggered = False  # Reset for next rotation
-                        print(f"✓ Finished face rotation for {self.selected_sticker}")
+                        logger.info(f"✅ Finished face rotation for {self.selected_sticker}")
             elif event.type == pygame.MOUSEMOTION:
                 if self.mouse_pressed:
                     if self.face_rotation_drag and self.selected_sticker:
@@ -280,7 +283,7 @@ class Renderer:
         """Clean up Pygame resources."""
         if self.initialized:
             pygame.quit()
-            print("✓ Renderer cleaned up") 
+            logger.info("🧹 Renderer cleaned up") 
 
     def get_clicked_sticker_info(self, mouse_pos, cube):
         """Get the sticker that was clicked by calling the cube's method."""

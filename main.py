@@ -5,18 +5,19 @@ Main entry point for the simplified Rubik's Cube application.
 import sys
 from cube import Cube
 from renderer import Renderer
+from utils import logger
 
 def main():
     """Main function."""
-    print("🎲 Starting Rubik's Cube")
-    print("=" * 50)
+    logger.info("🎲 Starting Rubik's Cube")
+    logger.info("=" * 50)
     
     # Initialize cube
     try:
         cube = Cube(size=3)
-        print("✓ Rubik's Cube initialized")
+        logger.info("✓ Rubik's Cube initialized")
     except Exception as e:
-        print(f"❌ Failed to initialize cube: {e}")
+        logger.error(f"❌ Failed to initialize cube: {e}")
         import traceback
         traceback.print_exc()
         return 1
@@ -25,22 +26,23 @@ def main():
     try:
         renderer = Renderer()
         renderer.initialize()
-        print("✓ Renderer initialized")
+        logger.info("Renderer initialized")
     except Exception as e:
-        print(f"❌ Failed to initialize renderer: {e}")
+        logger.error(f"❌ Failed to initialize renderer: {e}")
         import traceback
         traceback.print_exc()
         return 1
     
     # Main game loop
-    print("\n🎮 Starting game loop...")
-    print("Controls:")
-    print("  - Left mouse: Click and drag to rotate the cube")
-    print("  - Right mouse: Click to select a face")
-    print("  - Left mouse + drag (with face selected): Rotate selected face")
-    print("  - R: Reset cube")
-    print("  - ESC: Quit")
-    print("=" * 50)
+    logger.info("🎮 Starting game loop...")
+    logger.info("🎮 Controls:")
+    logger.info("  - Left mouse: Click and drag to rotate the cube")
+    logger.info("  - Right mouse: Click to select a face")
+    logger.info("  - Left mouse + drag (with face selected): Rotate selected face")
+    logger.info("  - R: Reset cube")
+    logger.info("  - D: Toggle debug mode")
+    logger.info("  - ESC: Quit")
+    logger.info("=" * 50)
     
     running = True
     try:
@@ -50,15 +52,15 @@ def main():
             renderer.tick(60)
     
     except KeyboardInterrupt:
-        print("\n⚠️  Interrupted by user (Ctrl+C)")
+        logger.warning("⚠️ Interrupted by user (Ctrl+C)")
     except Exception as e:
-        print(f"\n❌ Error in game loop: {e}")
+        logger.error(f"❌ Error in game loop: {e}")
         import traceback
         traceback.print_exc()
         return 1
     finally:
         renderer.cleanup()
-        print("\n✅ Application closed successfully")
+        logger.info("✅ Application closed successfully")
     
     return 0
 

@@ -17,7 +17,6 @@ class Sticker:
         self.position = position
         self.face = face
         self.is_selected = False
-        self.adjacent_stickers = []  # List of adjacent sticker positions
     
     def set_color(self, color):
         """Set the sticker color."""
@@ -49,13 +48,4 @@ class Sticker:
     
     def is_sticker_selected(self):
         """Check if this sticker is selected."""
-        return self.is_selected
-    
-    def add_adjacent(self, adjacent_position):
-        """Add an adjacent sticker position."""
-        if adjacent_position not in self.adjacent_stickers:
-            self.adjacent_stickers.append(adjacent_position)
-    
-    def get_adjacents(self):
-        """Get list of adjacent sticker positions."""
-        return self.adjacent_stickers.copy() 
+        return self.is_selected 
