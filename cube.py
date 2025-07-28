@@ -92,37 +92,7 @@ class Cube:
         
         return (center_x + map_x, center_y + map_y, center_z + map_z)
     
-    def toString(self):
-        """
-        Convert cube state to string representation.
-        Format: UUUUUUUUUDDDDDDDDDDFFFFFFFFFBBBBBBBBBLLLLLLLLLRRRRRRRRR
-        """
-        result = ""
-        for face in config.FACE_NAMES:
-            for row in self.cube[face]:
-                for color in row:
-                    result += color
-        return result
-    
-    def fromString(self, cube_string):
-        """
-        Convert string representation back to cube state.
-        
-        Args:
-            cube_string (str): String representation of cube state
-        """
-        if len(cube_string) != 54:  # 6 faces * 9 stickers
-            raise ValueError("Invalid cube string length. Expected 54 characters.")
-        
-        index = 0
-        for face in config.FACE_NAMES:
-            for i in range(3):
-                for j in range(3):
-                    self.cube[face][i][j] = cube_string[index]
-                    index += 1
-        
-        # Update sticker objects to match the new state
-        self.update_sticker_objects()
+
     
     def update_sticker_objects(self):
         """Update sticker objects to match the current cube state."""
@@ -133,15 +103,7 @@ class Cube:
                     sticker = self.sticker_objects[face][i][j]
                     sticker.set_color(color)
         
-        # Debug: Print rendering state for R, B, and D faces after update
-        for debug_face in ['R', 'B', 'D']:
-            logger.debug(f"🎨 {debug_face} face rendering state after update:")
-            for i in range(3):
-                for j in range(3):
-                    sticker = self.sticker_objects[debug_face][i][j]
-                    color = sticker.get_color()
-                    x, y, z = sticker.get_position()
-                    logger.debug(f"  {debug_face}[{i}][{j}] -> color: '{color}' at pos ({x:.2f}, {y:.2f}, {z:.2f})")
+
     
     def print_cube_state(self):
         """Print the current state of the cube in a visual format."""
@@ -157,7 +119,6 @@ class Cube:
                     position_row.append(f"{i}.{j}-{color}")
                 logger.debug(f"  {position_row}")
         
-        logger.debug(f"String representation: {self.toString()}")
         logger.debug("=" * 50)
     
     def _rotate_face_clockwise(self, face):
@@ -200,252 +161,287 @@ class Cube:
     
     def rotate_face_matrix(self, face, direction):
         """Rotate the 3x3 matrix of a face by 90 degrees."""
-        logger.debug(f"Before rotation:")
-        for row in self.cube[face]:
-            logger.debug(f"  {row}")
-        
         if direction == "clockwise":
             self.cube[face] = self._rotate_face_clockwise(face)
         else:  # counterclockwise
             self.cube[face] = self._rotate_face_counterclockwise(face)
+    
+
+    
+    def _rotate_F_clockwise(self):
+        """Rotate F face clockwise and update adjacent faces."""
+        # Save the bottom row of U
+        bottom_row_U = self.cube['U'][2][:]
         
-        logger.debug(f"After {direction} rotation:")
-        for row in self.cube[face]:
-            logger.debug(f"  {row}")
+        # Left face (right column) -> Up face (bottom row)
+        self.cube['U'][2] = [self.cube['L'][2][2], self.cube['L'][1][2], self.cube['L'][0][2]]
+        
+        # Down face (top row) -> Left face (right column)
+        top_row_D = self.cube['D'][0][:]
+        self.cube['L'][0][2] = top_row_D[0]
+        self.cube['L'][1][2] = top_row_D[1]
+        self.cube['L'][2][2] = top_row_D[2]
+        
+        # Right face (left column) -> Down face (top row)
+        self.cube['D'][0] = [self.cube['R'][2][0], self.cube['R'][1][0], self.cube['R'][0][0]]
+        
+        # (Saved) Up face -> Right face (left column)
+        self.cube['R'][0][0] = bottom_row_U[0]
+        self.cube['R'][1][0] = bottom_row_U[1]
+        self.cube['R'][2][0] = bottom_row_U[2]
+    
+    def _rotate_F_counterclockwise(self):
+        """Rotate F face counterclockwise and update adjacent faces."""
+        # Save the bottom row of U
+        bottom_row_U = self.cube['U'][2][:]
+        
+        # Right face (left column) -> Up face
+        self.cube['U'][2] = [self.cube['R'][0][0], self.cube['R'][1][0], self.cube['R'][2][0]]
+        
+        # Down face -> Right face
+        top_row_D = self.cube['D'][0][:]
+        self.cube['R'][0][0] = top_row_D[2]
+        self.cube['R'][1][0] = top_row_D[1]
+        self.cube['R'][2][0] = top_row_D[0]
+        
+        # Left face -> Down face
+        self.cube['D'][0] = [self.cube['L'][0][2], self.cube['L'][1][2], self.cube['L'][2][2]]
+        
+        # (Saved) Up face -> Left face
+        self.cube['L'][0][2] = bottom_row_U[2]
+        self.cube['L'][1][2] = bottom_row_U[1]
+        self.cube['L'][2][2] = bottom_row_U[0]
+    
+    def _rotate_U_clockwise(self):
+        """Rotate U face clockwise and update adjacent faces."""
+        # Save the top row of F
+        top_row_F = self.cube['F'][0][:]
+        
+        self.cube['F'][0] = self.cube['L'][0]
+        self.cube['L'][0] = self.cube['B'][0]
+        self.cube['B'][0] = self.cube['R'][0]
+        self.cube['R'][0] = top_row_F
+    
+    def _rotate_U_counterclockwise(self):
+        """Rotate U face counterclockwise and update adjacent faces."""
+        # Save the top row of F
+        top_row_F = self.cube['F'][0][:]
+        
+        self.cube['F'][0] = self.cube['R'][0]
+        self.cube['R'][0] = self.cube['B'][0]
+        self.cube['B'][0] = self.cube['L'][0]
+        self.cube['L'][0] = top_row_F
+    
+    def _rotate_D_clockwise(self):
+        """Rotate D face clockwise and update adjacent faces."""
+        # Save the bottom row of F
+        bottom_row_F = self.cube['F'][2][:]
+        
+        self.cube['F'][2] = self.cube['L'][2]
+        self.cube['L'][2] = self.cube['B'][2]
+        self.cube['B'][2] = self.cube['R'][2]
+        self.cube['R'][2] = bottom_row_F
+    
+    def _rotate_D_counterclockwise(self):
+        """Rotate D face counterclockwise and update adjacent faces."""
+        # Save the bottom row of F
+        bottom_row_F = self.cube['F'][2][:]
+        
+        self.cube['F'][2] = self.cube['R'][2]
+        self.cube['R'][2] = self.cube['B'][2]
+        self.cube['B'][2] = self.cube['L'][2]
+        self.cube['L'][2] = bottom_row_F
+    
+    def _rotate_L_clockwise(self):
+        """Rotate L face clockwise and update adjacent faces."""
+        # Save the left column of U
+        left_col_U = [self.cube['U'][0][0], self.cube['U'][1][0], self.cube['U'][2][0]]
+        
+        # Back face -> Up face
+        self.cube['U'][0][0] = self.cube['B'][2][2]
+        self.cube['U'][1][0] = self.cube['B'][1][2]
+        self.cube['U'][2][0] = self.cube['B'][0][2]
+        
+        # Down face -> Back face
+        left_col_D = [self.cube['D'][0][0], self.cube['D'][1][0], self.cube['D'][2][0]]
+        self.cube['B'][0][2] = left_col_D[0]
+        self.cube['B'][1][2] = left_col_D[1]
+        self.cube['B'][2][2] = left_col_D[2]
+        
+        # Front face -> Down face
+        left_col_F = [self.cube['F'][0][0], self.cube['F'][1][0], self.cube['F'][2][0]]
+        self.cube['D'][0][0] = left_col_F[0]
+        self.cube['D'][1][0] = left_col_F[1]
+        self.cube['D'][2][0] = left_col_F[2]
+        
+        # (Saved) Up face -> Front face
+        self.cube['F'][0][0] = left_col_U[0]
+        self.cube['F'][1][0] = left_col_U[1]
+        self.cube['F'][2][0] = left_col_U[2]
+    
+    def _rotate_L_counterclockwise(self):
+        """Rotate L face counterclockwise and update adjacent faces."""
+        # Save the left column of U
+        left_col_U = [self.cube['U'][0][0], self.cube['U'][1][0], self.cube['U'][2][0]]
+        
+        # Front face -> Up face
+        self.cube['U'][0][0] = self.cube['F'][0][0]
+        self.cube['U'][1][0] = self.cube['F'][1][0]
+        self.cube['U'][2][0] = self.cube['F'][2][0]
+        
+        # Down face -> Front face
+        left_col_D = [self.cube['D'][0][0], self.cube['D'][1][0], self.cube['D'][2][0]]
+        self.cube['F'][0][0] = left_col_D[0]
+        self.cube['F'][1][0] = left_col_D[1]
+        self.cube['F'][2][0] = left_col_D[2]
+        
+        # Back face -> Down face
+        self.cube['D'][0][0] = self.cube['B'][0][2]
+        self.cube['D'][1][0] = self.cube['B'][1][2]
+        self.cube['D'][2][0] = self.cube['B'][2][2]
+        
+        # (Saved) Up face -> Back face
+        self.cube['B'][0][2] = left_col_U[2]
+        self.cube['B'][1][2] = left_col_U[1]
+        self.cube['B'][2][2] = left_col_U[0]
+    
+    def _rotate_R_clockwise(self):
+        """Rotate R face clockwise and update adjacent faces."""
+        # Save the right column of U
+        right_col_U = [self.cube['U'][0][2], self.cube['U'][1][2], self.cube['U'][2][2]]
+        
+        # Front face -> Up face
+        self.cube['U'][0][2] = self.cube['F'][0][2]
+        self.cube['U'][1][2] = self.cube['F'][1][2]
+        self.cube['U'][2][2] = self.cube['F'][2][2]
+        
+        # Down face -> Front face
+        right_col_D = [self.cube['D'][0][2], self.cube['D'][1][2], self.cube['D'][2][2]]
+        self.cube['F'][0][2] = right_col_D[0]
+        self.cube['F'][1][2] = right_col_D[1]
+        self.cube['F'][2][2] = right_col_D[2]
+        
+        # Back face -> Down face
+        self.cube['D'][0][2] = self.cube['B'][2][0]
+        self.cube['D'][1][2] = self.cube['B'][1][0]
+        self.cube['D'][2][2] = self.cube['B'][0][0]
+        
+        # (Saved) Up face -> Back face
+        self.cube['B'][0][0] = right_col_U[2]
+        self.cube['B'][1][0] = right_col_U[1]
+        self.cube['B'][2][0] = right_col_U[0]
+    
+    def _rotate_R_counterclockwise(self):
+        """Rotate R face counterclockwise and update adjacent faces."""
+        # Save the right column of U
+        right_col_U = [self.cube['U'][0][2], self.cube['U'][1][2], self.cube['U'][2][2]]
+        
+        # Back face -> Up face
+        self.cube['U'][0][2] = self.cube['B'][2][0]
+        self.cube['U'][1][2] = self.cube['B'][1][0]
+        self.cube['U'][2][2] = self.cube['B'][0][0]
+        
+        # Down face -> Back face
+        right_col_D = [self.cube['D'][0][2], self.cube['D'][1][2], self.cube['D'][2][2]]
+        self.cube['B'][0][0] = right_col_D[2]
+        self.cube['B'][1][0] = right_col_D[1]
+        self.cube['B'][2][0] = right_col_D[0]
+        
+        # Front face -> Down face
+        right_col_F = [self.cube['F'][0][2], self.cube['F'][1][2], self.cube['F'][2][2]]
+        self.cube['D'][0][2] = right_col_F[0]
+        self.cube['D'][1][2] = right_col_F[1]
+        self.cube['D'][2][2] = right_col_F[2]
+        
+        # (Saved) Up face -> Front face
+        self.cube['F'][0][2] = right_col_U[0]
+        self.cube['F'][1][2] = right_col_U[1]
+        self.cube['F'][2][2] = right_col_U[2]
+    
+    def _rotate_B_clockwise(self):
+        """Rotate B face clockwise and update adjacent faces."""
+        # Save the top row of U
+        top_row_U = self.cube['U'][0][:]
+        
+        # Right face -> Up face
+        self.cube['U'][0] = [self.cube['R'][0][2], self.cube['R'][1][2], self.cube['R'][2][2]]
+        
+        # Down face -> Right face
+        bottom_row_D = self.cube['D'][2][:]
+        self.cube['R'][0][2] = bottom_row_D[2]
+        self.cube['R'][1][2] = bottom_row_D[1]
+        self.cube['R'][2][2] = bottom_row_D[0]
+        
+        # Left face -> Down face
+        self.cube['D'][2] = [self.cube['L'][2][0], self.cube['L'][1][0], self.cube['L'][0][0]]
+        
+        # (Saved) Up face -> Left face
+        self.cube['L'][0][0] = top_row_U[2]
+        self.cube['L'][1][0] = top_row_U[1]
+        self.cube['L'][2][0] = top_row_U[0]
+    
+    def _rotate_B_counterclockwise(self):
+        """Rotate B face counterclockwise and update adjacent faces."""
+        # Save the top row of U
+        top_row_U = self.cube['U'][0][:]
+        
+        # Left face -> Up face
+        self.cube['U'][0] = [self.cube['L'][2][0], self.cube['L'][1][0], self.cube['L'][0][0]]
+        
+        # Down face -> Left face
+        bottom_row_D = self.cube['D'][2][:]
+        self.cube['L'][0][0] = bottom_row_D[0]
+        self.cube['L'][1][0] = bottom_row_D[1]
+        self.cube['L'][2][0] = bottom_row_D[2]
+        
+        # Right face -> Down face
+        self.cube['D'][2] = [self.cube['R'][2][2], self.cube['R'][1][2], self.cube['R'][0][2]]
+        
+        # (Saved) Up face -> Right face
+        self.cube['R'][0][2] = top_row_U[0]
+        self.cube['R'][1][2] = top_row_U[1]
+        self.cube['R'][2][2] = top_row_U[2]
     
     def update_adjacent_faces(self, rotated_face, direction):
         """Update stickers on adjacent faces after a rotation."""
-        logger.debug(f"Updating adjacent faces for {rotated_face} {direction} rotation")
         
         if rotated_face == 'F':  # Front face
             if direction == "clockwise":
-                # Save the bottom row of U
-                bottom_row_U = self.cube['U'][2][:]
-                
-                # Left face (right column) -> Up face (bottom row)
-                self.cube['U'][2] = [self.cube['L'][2][2], self.cube['L'][1][2], self.cube['L'][0][2]]
-                
-                # Down face (top row) -> Left face (right column)
-                top_row_D = self.cube['D'][0][:]
-                self.cube['L'][0][2] = top_row_D[0]
-                self.cube['L'][1][2] = top_row_D[1]
-                self.cube['L'][2][2] = top_row_D[2]
-                
-                # Right face (left column) -> Down face (top row)
-                self.cube['D'][0] = [self.cube['R'][2][0], self.cube['R'][1][0], self.cube['R'][0][0]]
-                
-                # (Saved) Up face -> Right face (left column)
-                self.cube['R'][0][0] = bottom_row_U[0]
-                self.cube['R'][1][0] = bottom_row_U[1]
-                self.cube['R'][2][0] = bottom_row_U[2]
-                    
+                self._rotate_F_clockwise()
             else:  # counterclockwise
-                # Save the bottom row of U
-                bottom_row_U = self.cube['U'][2][:]
-                
-                # Right face (left column) -> Up face
-                self.cube['U'][2] = [self.cube['R'][0][0], self.cube['R'][1][0], self.cube['R'][2][0]]
-                
-                # Down face -> Right face
-                top_row_D = self.cube['D'][0][:]
-                self.cube['R'][0][0] = top_row_D[2]
-                self.cube['R'][1][0] = top_row_D[1]
-                self.cube['R'][2][0] = top_row_D[0]
-                
-                # Left face -> Down face
-                self.cube['D'][0] = [self.cube['L'][0][2], self.cube['L'][1][2], self.cube['L'][2][2]]
-                
-                # (Saved) Up face -> Left face
-                self.cube['L'][0][2] = bottom_row_U[2]
-                self.cube['L'][1][2] = bottom_row_U[1]
-                self.cube['L'][2][2] = bottom_row_U[0]
+                self._rotate_F_counterclockwise()
         
         elif rotated_face == 'U':  # Up face
             if direction == "clockwise":
-                # Save the top row of F
-                top_row_F = self.cube['F'][0][:]
-                
-                self.cube['F'][0] = self.cube['R'][0]
-                self.cube['R'][0] = self.cube['B'][0]
-                self.cube['B'][0] = self.cube['L'][0]
-                self.cube['L'][0] = top_row_F
-                    
+                self._rotate_U_clockwise()
             else:  # counterclockwise
-                # Save the top row of F
-                top_row_F = self.cube['F'][0][:]
-                
-                self.cube['F'][0] = self.cube['L'][0]
-                self.cube['L'][0] = self.cube['B'][0]
-                self.cube['B'][0] = self.cube['R'][0]
-                self.cube['R'][0] = top_row_F
+                self._rotate_U_counterclockwise()
         
         elif rotated_face == 'D':  # Down face
             if direction == "clockwise":
-                # Save the bottom row of F
-                bottom_row_F = self.cube['F'][2][:]
-                
-                self.cube['F'][2] = self.cube['L'][2]
-                self.cube['L'][2] = self.cube['B'][2]
-                self.cube['B'][2] = self.cube['R'][2]
-                self.cube['R'][2] = bottom_row_F
-                    
+                self._rotate_D_clockwise()
             else:  # counterclockwise
-                # Save the bottom row of F
-                bottom_row_F = self.cube['F'][2][:]
-                
-                self.cube['F'][2] = self.cube['R'][2]
-                self.cube['R'][2] = self.cube['B'][2]
-                self.cube['B'][2] = self.cube['L'][2]
-                self.cube['L'][2] = bottom_row_F
+                self._rotate_D_counterclockwise()
         
         elif rotated_face == 'L':  # Left face
             if direction == "clockwise":
-                # Save the left column of U
-                left_col_U = [self.cube['U'][0][0], self.cube['U'][1][0], self.cube['U'][2][0]]
-                
-                # Back face -> Up face
-                self.cube['U'][0][0] = self.cube['B'][2][2]
-                self.cube['U'][1][0] = self.cube['B'][1][2]
-                self.cube['U'][2][0] = self.cube['B'][0][2]
-                
-                # Down face -> Back face
-                left_col_D = [self.cube['D'][0][0], self.cube['D'][1][0], self.cube['D'][2][0]]
-                self.cube['B'][0][2] = left_col_D[0]
-                self.cube['B'][1][2] = left_col_D[1]
-                self.cube['B'][2][2] = left_col_D[2]
-                
-                # Front face -> Down face
-                left_col_F = [self.cube['F'][0][0], self.cube['F'][1][0], self.cube['F'][2][0]]
-                self.cube['D'][0][0] = left_col_F[0]
-                self.cube['D'][1][0] = left_col_F[1]
-                self.cube['D'][2][0] = left_col_F[2]
-                
-                # (Saved) Up face -> Front face
-                self.cube['F'][0][0] = left_col_U[0]
-                self.cube['F'][1][0] = left_col_U[1]
-                self.cube['F'][2][0] = left_col_U[2]
-                    
+                self._rotate_L_clockwise()
             else:  # counterclockwise
-                # Save the left column of U
-                left_col_U = [self.cube['U'][0][0], self.cube['U'][1][0], self.cube['U'][2][0]]
-                
-                # Front face -> Up face
-                self.cube['U'][0][0] = self.cube['F'][0][0]
-                self.cube['U'][1][0] = self.cube['F'][1][0]
-                self.cube['U'][2][0] = self.cube['F'][2][0]
-                
-                # Down face -> Front face
-                left_col_D = [self.cube['D'][0][0], self.cube['D'][1][0], self.cube['D'][2][0]]
-                self.cube['F'][0][0] = left_col_D[0]
-                self.cube['F'][1][0] = left_col_D[1]
-                self.cube['F'][2][0] = left_col_D[2]
-                
-                # Back face -> Down face
-                self.cube['D'][0][0] = self.cube['B'][0][2]
-                self.cube['D'][1][0] = self.cube['B'][1][2]
-                self.cube['D'][2][0] = self.cube['B'][2][2]
-                
-                # (Saved) Up face -> Back face
-                self.cube['B'][0][2] = left_col_U[2]
-                self.cube['B'][1][2] = left_col_U[1]
-                self.cube['B'][2][2] = left_col_U[0]
+                self._rotate_L_counterclockwise()
         
         elif rotated_face == 'R':  # Right face
             if direction == "clockwise":
-                # Save the right column of U
-                right_col_U = [self.cube['U'][0][2], self.cube['U'][1][2], self.cube['U'][2][2]]
-                
-                # Front face -> Up face
-                self.cube['U'][0][2] = self.cube['F'][0][2]
-                self.cube['U'][1][2] = self.cube['F'][1][2]
-                self.cube['U'][2][2] = self.cube['F'][2][2]
-                
-                # Down face -> Front face
-                right_col_D = [self.cube['D'][0][2], self.cube['D'][1][2], self.cube['D'][2][2]]
-                self.cube['F'][0][2] = right_col_D[0]
-                self.cube['F'][1][2] = right_col_D[1]
-                self.cube['F'][2][2] = right_col_D[2]
-                
-                # Back face -> Down face
-                self.cube['D'][0][2] = self.cube['B'][2][0]
-                self.cube['D'][1][2] = self.cube['B'][1][0]
-                self.cube['D'][2][2] = self.cube['B'][0][0]
-                
-                # (Saved) Up face -> Back face
-                self.cube['B'][0][0] = right_col_U[2]
-                self.cube['B'][1][0] = right_col_U[1]
-                self.cube['B'][2][0] = right_col_U[0]
-                    
+                self._rotate_R_clockwise()
             else:  # counterclockwise
-                # Save the right column of U
-                right_col_U = [self.cube['U'][0][2], self.cube['U'][1][2], self.cube['U'][2][2]]
-                
-                # Back face -> Up face
-                self.cube['U'][0][2] = self.cube['B'][2][0]
-                self.cube['U'][1][2] = self.cube['B'][1][0]
-                self.cube['U'][2][2] = self.cube['B'][0][0]
-                
-                # Down face -> Back face
-                right_col_D = [self.cube['D'][0][2], self.cube['D'][1][2], self.cube['D'][2][2]]
-                self.cube['B'][0][0] = right_col_D[2]
-                self.cube['B'][1][0] = right_col_D[1]
-                self.cube['B'][2][0] = right_col_D[0]
-                
-                # Front face -> Down face
-                right_col_F = [self.cube['F'][0][2], self.cube['F'][1][2], self.cube['F'][2][2]]
-                self.cube['D'][0][2] = right_col_F[0]
-                self.cube['D'][1][2] = right_col_F[1]
-                self.cube['D'][2][2] = right_col_F[2]
-                
-                # (Saved) Up face -> Front face
-                self.cube['F'][0][2] = right_col_U[0]
-                self.cube['F'][1][2] = right_col_U[1]
-                self.cube['F'][2][2] = right_col_U[2]
+                self._rotate_R_counterclockwise()
         
         elif rotated_face == 'B':  # Back face
             if direction == "clockwise":
-                # Save the top row of U
-                top_row_U = self.cube['U'][0][:]
-                
-                # Right face -> Up face
-                self.cube['U'][0] = [self.cube['R'][0][2], self.cube['R'][1][2], self.cube['R'][2][2]]
-                
-                # Down face -> Right face
-                bottom_row_D = self.cube['D'][2][:]
-                self.cube['R'][0][2] = bottom_row_D[2]
-                self.cube['R'][1][2] = bottom_row_D[1]
-                self.cube['R'][2][2] = bottom_row_D[0]
-                
-                # Left face -> Down face
-                self.cube['D'][2] = [self.cube['L'][2][0], self.cube['L'][1][0], self.cube['L'][0][0]]
-                
-                # (Saved) Up face -> Left face
-                self.cube['L'][0][0] = top_row_U[2]
-                self.cube['L'][1][0] = top_row_U[1]
-                self.cube['L'][2][0] = top_row_U[0]
-                    
+                self._rotate_B_clockwise()
             else:  # counterclockwise
-                # Save the top row of U
-                top_row_U = self.cube['U'][0][:]
-                
-                # Left face -> Up face
-                self.cube['U'][0] = [self.cube['L'][2][0], self.cube['L'][1][0], self.cube['L'][0][0]]
-                
-                # Down face -> Left face
-                bottom_row_D = self.cube['D'][2][:]
-                self.cube['L'][0][0] = bottom_row_D[0]
-                self.cube['L'][1][0] = bottom_row_D[1]
-                self.cube['L'][2][0] = bottom_row_D[2]
-                
-                # Right face -> Down face
-                self.cube['D'][2] = [self.cube['R'][2][2], self.cube['R'][1][2], self.cube['R'][0][2]]
-                
-                # (Saved) Up face -> Right face
-                self.cube['R'][0][2] = top_row_U[0]
-                self.cube['R'][1][2] = top_row_U[1]
-                self.cube['R'][2][2] = top_row_U[2]
+                self._rotate_B_counterclockwise()
         
-        logger.debug("Adjacent faces updated!")
+
     
     def rotate_face(self, face, direction):
         """
