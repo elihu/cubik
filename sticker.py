@@ -17,6 +17,7 @@ class Sticker:
         self.position = position
         self.face = face
         self.is_selected = False
+        self.is_adjacent = False  # Whether this sticker is adjacent to selected face
     
     def set_color(self, color):
         """Set the sticker color."""
@@ -48,4 +49,12 @@ class Sticker:
     
     def is_sticker_selected(self):
         """Check if this sticker is selected."""
-        return self.is_selected 
+        return self.is_selected
+    
+    def set_adjacent(self, adjacent):
+        """Set whether this sticker is adjacent to selected face."""
+        self.is_adjacent = adjacent
+    
+    def is_sticker_adjacent(self):
+        """Check if this sticker is adjacent to selected face."""
+        return self.is_adjacent 

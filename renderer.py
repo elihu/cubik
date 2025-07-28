@@ -22,7 +22,7 @@ class Renderer:
         # Mouse interaction variables
         self.mouse_pressed = False
         self.last_mouse_pos = None
-        self.selected_sticker = None  # Changed from selected_face to selected_sticker
+        self.selected_sticker = None
         self.face_rotation_drag = False
         self.face_rotation_start_pos = None
         self.face_rotation_threshold = 30  # pixels
@@ -41,7 +41,7 @@ class Renderer:
         # Set up perspective
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(config.FOV, config.WINDOW_WIDTH / config.WINDOW_HEIGHT, 0.1, 100.0)
+        gluPerspective(config.FOV, config.WINDOW_WIDTH / config.WINDOW_HEIGHT, config.NEAR_PLANE, config.FAR_PLANE)
         
         # Set up modelview matrix
         glMatrixMode(GL_MODELVIEW)
@@ -84,14 +84,12 @@ class Renderer:
                     x, y, z = sticker.get_position()
                     color = sticker.get_color()
                     is_selected = sticker.is_sticker_selected()
-                    
-                    # Debug: Log the color being rendered for this position (only for R face to avoid spam)
-                    # Removed debug logging from render loop to avoid spam
+                    is_adjacent = sticker.is_sticker_adjacent()
                     
                     # Draw the sticker
-                    self.draw_sticker(x, y, z, face, color, is_selected)
+                    self.draw_sticker(x, y, z, face, color, is_selected, is_adjacent)
     
-    def draw_sticker(self, x, y, z, face, color, is_selected):
+    def draw_sticker(self, x, y, z, face, color, is_selected, is_adjacent=False):
         """Draw a single sticker at the specified position."""
         # Define sticker vertices (square)
         vertices = [
@@ -113,13 +111,11 @@ class Renderer:
         # Set color
         if is_selected:
             # Make selected stickers brighter
-            # Extract the base color (first character) from the sticker color
             base_color = color[0] if len(color) > 0 else 'W'
             color_rgb = config.COLOR_RGB.get(base_color, (1, 1, 1))
             bright_color = tuple(min(1.0, c * 1.5) for c in color_rgb)
             glColor3fv(bright_color)
         else:
-            # Extract the base color (first character) from the sticker color
             base_color = color[0] if len(color) > 0 else 'W'
             color_rgb = config.COLOR_RGB.get(base_color, (1, 1, 1))
             glColor3fv(color_rgb)
@@ -130,8 +126,11 @@ class Renderer:
             glVertex3fv(v)
         glEnd()
         
-        # Draw border using thicker lines or multiple lines
-        if is_selected:
+        # Draw border
+        if is_adjacent:
+            glColor3f(*config.ADJACENT_BORDER_COLOR)
+            border_width = config.BORDER_WIDTH * 1.2  # Slightly thicker for adjacent
+        elif is_selected:
             glColor3f(*config.SELECTION_BORDER_COLOR)
             border_width = config.BORDER_WIDTH * 1.5  # Slightly thicker for selected
         else:
@@ -158,7 +157,6 @@ class Renderer:
     
     def apply_face_rotation(self, rotation_type):
         """Apply rotation to orient the sticker correctly for its face."""
-        # Same logic as the original working code
         if rotation_type == 'none':
             pass
         elif rotation_type == '180_x':
@@ -232,51 +230,50 @@ class Renderer:
                 if self.mouse_pressed:
                     if self.face_rotation_drag and self.selected_sticker:
                         # Handle face rotation
-                        dx = event.pos[0] - self.last_mouse_pos[0]
-                        dy = event.pos[1] - self.last_mouse_pos[1]
-                        
-                        # Calculate total distance moved from start position
-                        total_dx = event.pos[0] - self.face_rotation_start_pos[0]
-                        total_dy = event.pos[1] - self.face_rotation_start_pos[1]
-                        total_distance = (total_dx**2 + total_dy**2)**0.5
-                        
-                        # Check if we've moved enough to trigger rotation
-                        if total_distance > self.face_rotation_threshold and not self.face_rotation_triggered:
-                            # Determine rotation direction based on dominant movement
-                            if abs(total_dx) > abs(total_dy):
-                                # Horizontal movement dominates
-                                if total_dx > 0:
-                                    direction = "clockwise"
-                                else:
-                                    direction = "counterclockwise"
-                            else:
-                                # Vertical movement dominates
-                                if total_dy > 0:
-                                    direction = "clockwise"
-                                else:
-                                    direction = "counterclockwise"
-                            
-                            # Apply the rotation
-                            cube.rotate_face(self.selected_sticker, direction)
-                            self.face_rotation_triggered = True
-                        
-                        self.last_mouse_pos = event.pos
+                        self._handle_face_rotation(event.pos, cube)
                     else:
                         # Handle cube rotation
-                        dx = event.pos[0] - self.last_mouse_pos[0]
-                        dy = event.pos[1] - self.last_mouse_pos[1]
-                        
-                        # Apply cube rotation
-                        self.cube_rotation_y += dx * self.rotation_sensitivity
-                        self.cube_rotation_x += dy * self.rotation_sensitivity
-                        
-                        # Keep rotation within reasonable bounds
-                        self.cube_rotation_x = max(-90, min(90, self.cube_rotation_x))
-                        
-                        # Update last mouse position
-                        self.last_mouse_pos = event.pos
+                        self._handle_cube_rotation(event.pos)
         
         return True
+    
+    def _handle_face_rotation(self, current_pos, cube):
+        """Handle face rotation logic."""
+        # Calculate total distance moved from start position
+        total_dx = current_pos[0] - self.face_rotation_start_pos[0]
+        total_dy = current_pos[1] - self.face_rotation_start_pos[1]
+        total_distance = (total_dx**2 + total_dy**2)**0.5
+        
+        # Check if we've moved enough to trigger rotation
+        if total_distance > self.face_rotation_threshold and not self.face_rotation_triggered:
+            # Determine rotation direction based on dominant movement
+            if abs(total_dx) > abs(total_dy):
+                # Horizontal movement dominates
+                direction = "clockwise" if total_dx > 0 else "counterclockwise"
+            else:
+                # Vertical movement dominates
+                direction = "clockwise" if total_dy > 0 else "counterclockwise"
+            
+            # Apply the rotation
+            cube.rotate_face(self.selected_sticker, direction)
+            self.face_rotation_triggered = True
+        
+        self.last_mouse_pos = current_pos
+    
+    def _handle_cube_rotation(self, current_pos):
+        """Handle cube rotation logic."""
+        dx = current_pos[0] - self.last_mouse_pos[0]
+        dy = current_pos[1] - self.last_mouse_pos[1]
+        
+        # Apply cube rotation
+        self.cube_rotation_y += dx * self.rotation_sensitivity
+        self.cube_rotation_x += dy * self.rotation_sensitivity
+        
+        # Keep rotation within reasonable bounds
+        self.cube_rotation_x = max(-90, min(90, self.cube_rotation_x))
+        
+        # Update last mouse position
+        self.last_mouse_pos = current_pos
     
     def get_fps(self):
         """Get the current FPS."""

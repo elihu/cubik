@@ -474,16 +474,148 @@ class Cube:
         """Set the selected face for highlighting."""
         # Clear previous selection
         if self.selected_face:
-            for i in range(3):
-                for j in range(3):
-                    self.sticker_objects[self.selected_face][i][j].set_selected(False)
+            self._clear_face_selection(self.selected_face)
         
         # Set new selection
         self.selected_face = face
         if face:
+            self._set_face_selection(face)
+    
+    def _clear_face_selection(self, face):
+        """Clear selection for a face and its adjacent stickers."""
+        # Clear main face
+        for i in range(3):
+            for j in range(3):
+                self.sticker_objects[face][i][j].set_selected(False)
+                self.sticker_objects[face][i][j].set_adjacent(False)
+        
+        # Clear adjacent stickers
+        adjacent_stickers = self._get_adjacent_stickers_for_face(face)
+        for sticker in adjacent_stickers:
+            sticker.set_selected(False)
+            sticker.set_adjacent(False)
+    
+    def _set_face_selection(self, face):
+        """Set selection for a face and its adjacent stickers."""
+        # Set main face
+        for i in range(3):
+            for j in range(3):
+                self.sticker_objects[face][i][j].set_selected(True)
+                self.sticker_objects[face][i][j].set_adjacent(False)
+        
+        # Set adjacent stickers
+        adjacent_stickers = self._get_adjacent_stickers_for_face(face)
+        for sticker in adjacent_stickers:
+            sticker.set_selected(True)
+            sticker.set_adjacent(True)
+    
+    def _get_adjacent_stickers_for_face(self, face):
+        """Get stickers from adjacent faces that will move during rotation."""
+        adjacent_stickers = []
+        
+        if face == 'F':  # Front face
+            # Top row of U face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['U'][2][j])
+            
+            # Left column of R face
             for i in range(3):
-                for j in range(3):
-                    self.sticker_objects[face][i][j].set_selected(True)
+                adjacent_stickers.append(self.sticker_objects['R'][i][0])
+            
+            # Bottom row of D face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['D'][0][j])
+            
+            # Right column of L face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['L'][i][2])
+        
+        elif face == 'U':  # Up face
+            # Top row of F face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['F'][0][j])
+            
+            # Top row of L face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['L'][0][j])
+            
+            # Top row of B face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['B'][0][j])
+            
+            # Top row of R face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['R'][0][j])
+        
+        elif face == 'D':  # Down face
+            # Bottom row of F face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['F'][2][j])
+            
+            # Bottom row of L face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['L'][2][j])
+            
+            # Bottom row of B face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['B'][2][j])
+            
+            # Bottom row of R face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['R'][2][j])
+        
+        elif face == 'L':  # Left face
+            # Left column of U face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['U'][i][0])
+            
+            # Left column of F face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['F'][i][0])
+            
+            # Left column of D face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['D'][i][0])
+            
+            # Right column of B face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['B'][i][2])
+        
+        elif face == 'R':  # Right face
+            # Right column of U face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['U'][i][2])
+            
+            # Right column of F face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['F'][i][2])
+            
+            # Right column of D face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['D'][i][2])
+            
+            # Left column of B face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['B'][i][0])
+        
+        elif face == 'B':  # Back face
+            # Top row of U face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['U'][0][j])
+            
+            # Right column of R face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['R'][i][2])
+            
+            # Bottom row of D face
+            for j in range(3):
+                adjacent_stickers.append(self.sticker_objects['D'][2][j])
+            
+            # Left column of L face
+            for i in range(3):
+                adjacent_stickers.append(self.sticker_objects['L'][i][0])
+        
+        return adjacent_stickers
     
     def get_cube_state(self):
         """Get the current state of the cube."""
