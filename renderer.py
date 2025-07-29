@@ -80,7 +80,7 @@ class Renderer:
         for face in config.FACE_NAMES:
             for i in range(cube.size):
                 for j in range(cube.size):
-                    sticker = cube.sticker_objects[face][i][j]
+                    sticker = cube.faces[face][i][j]
                     x, y, z = sticker.get_position()
                     color = sticker.get_color()
                     is_selected = sticker.is_sticker_selected()
