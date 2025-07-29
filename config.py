@@ -9,7 +9,7 @@ Configuration file containing all constants and static values for the Rubik's Cu
 # ============================================================================
 
 # Cube size configuration
-CUBE_SIZE = 3              # Size of the cube (2 for 2x2, 3 for 3x3, etc.)
+CUBE_SIZE = 2              # Size of the cube (2 for 2x2, 3 for 3x3, etc.)
 
 # Main cube parameter - all other dimensions are calculated from this
 STICKER_SIZE = 0.5           # Size of each sticker (0.0 to 1.0) - MAIN PARAMETER
