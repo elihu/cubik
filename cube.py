@@ -115,16 +115,17 @@ class Cube:
     
     def print_cube_state(self):
         """Print the current state of the cube in a visual format."""
-        logger.debug(f"🎲 Current {self.size}x{self.size} Cube State:")
-        logger.debug("=" * 50)
-        
-        for face in config.FACE_NAMES:
-            logger.debug(f"{face} face:")
-            face_state = self.get_face_state(face)
-            for row in face_state:
-                logger.debug(f"  {row}")
-        
-        logger.debug("=" * 50)
+        if logger.debug_enabled:
+            logger.debug(f"🎲 Current {self.size}x{self.size} Cube State:")
+            logger.debug("=" * 50)
+            
+            for face in config.FACE_NAMES:
+                logger.debug(f"{face} face:")
+                face_state = self.get_face_state(face)
+                for row in face_state:
+                    logger.debug(f"  {row}")
+            
+            logger.debug("=" * 50)
     
     def _rotate_face_clockwise(self, face):
         """Rotate a matrix clockwise by changing colors instead of moving references."""
@@ -188,8 +189,8 @@ class Cube:
         # Second: Rotate the face itself
         self.rotate_face_matrix(face, direction)
         
-        # Third: Update all sticker positions to match their new matrix positions
-        self.update_sticker_positions()
+        # # Third: Update all sticker positions to match their new matrix positions
+        # self.update_sticker_positions()
         
         # Show cube state after rotation
         self.print_cube_state()
@@ -205,6 +206,12 @@ class Cube:
             else:  # counterclockwise
                 self._rotate_F_counterclockwise()
         
+        elif rotated_face == 'B':  # Back face
+            if direction == "clockwise":
+                self._rotate_B_clockwise()
+            else:  # counterclockwise
+                self._rotate_B_counterclockwise()
+
         elif rotated_face == 'U':  # Up face
             if direction == "clockwise":
                 self._rotate_U_clockwise()
@@ -217,219 +224,260 @@ class Cube:
             else:  # counterclockwise
                 self._rotate_D_counterclockwise()
         
-        # TODO: Implement other faces one by one
-        # elif rotated_face == 'L':  # Left face
-        # elif rotated_face == 'R':  # Right face
-        # elif rotated_face == 'B':  # Back face
+        elif rotated_face == 'L':  # Down face
+            if direction == "clockwise":
+                self._rotate_L_clockwise()
+            else:  # counterclockwise
+                self._rotate_L_counterclockwise()
+
+        elif rotated_face == 'R':  # Down face
+            if direction == "clockwise":
+                self._rotate_R_clockwise()
+            else:  # counterclockwise
+                self._rotate_R_counterclockwise()
     
     def _rotate_F_clockwise(self):
         """
-        Rotate F face clockwise according to exact specifications - extensible to any cube size.
+        Rotate F face clockwise according to exact specifications from GIROS.md - extensible to any cube size.
         
-        For any cube size, we move the bottom row of U to the left column of R,
-        the left column of R to the top row of D (inverted),
-        the top row of D to the right column of L (inverted),
-        and the right column of L to the bottom row of U.
         """
         # Save original colors before any changes
-        bottom_row_U_colors = [self.faces['U'][self.size-1][j].get_color() for j in range(self.size)]
-        left_col_R_colors = [self.faces['R'][i][0].get_color() for i in range(self.size)]
-        top_row_D_colors = [self.faces['D'][0][j].get_color() for j in range(self.size)]
-        right_col_L_colors = [self.faces['L'][i][self.size-1].get_color() for i in range(self.size)]
-        
-        # Apply the exact movements from specifications
-        # U bottom row → R left column
-        for i in range(self.size):
-            self.faces['R'][i][0].set_color(bottom_row_U_colors[i])
-        
-        # R left column → D top row (inverted)
+        U_colors = [self.faces['U'][self.size-1][j].get_color() for j in range(self.size)]
+        R_colors = [self.faces['R'][i][0].get_color() for i in reversed(range(self.size))]
+        D_colors = [self.faces['D'][0][j].get_color() for j in range(self.size)]
+        L_colors = [self.faces['L'][i][self.size-1].get_color() for i in reversed(range(self.size))]
+                
         for j in range(self.size):
-            self.faces['D'][0][j].set_color(left_col_R_colors[self.size-1-j])
-        
-        # D top row → L right column (inverted)
+            self.faces['R'][j][0].set_color(U_colors[j])
         for i in range(self.size):
-            self.faces['L'][i][self.size-1].set_color(top_row_D_colors[self.size-1-i])
-        
-        # L right column → U bottom row
+            self.faces['D'][0][i].set_color(R_colors[i])
+        for i in range(self.size):
+            self.faces['L'][i][self.size-1].set_color(D_colors[i])
         for j in range(self.size):
-            self.faces['U'][self.size-1][j].set_color(right_col_L_colors[j])
+            self.faces['U'][self.size-1][j].set_color(L_colors[j])
     
     def _rotate_F_counterclockwise(self):
         """
         Rotate F face counterclockwise according to exact specifications - extensible to any cube size.
         
-        For any cube size, we move the bottom row of U to the right column of L,
-        the right column of L to the top row of D (inverted),
-        the top row of D to the left column of R (inverted),
-        and the left column of R to the bottom row of U.
         """
         # Save original colors before any changes
-        bottom_row_U_colors = [self.faces['U'][self.size-1][j].get_color() for j in range(self.size)]
-        right_col_L_colors = [self.faces['L'][i][self.size-1].get_color() for i in range(self.size)]
-        top_row_D_colors = [self.faces['D'][0][j].get_color() for j in range(self.size)]
-        left_col_R_colors = [self.faces['R'][i][0].get_color() for i in range(self.size)]
+        U_colors = [self.faces['U'][self.size-1][j].get_color() for j in reversed(range(self.size))]
+        R_colors = [self.faces['R'][i][0].get_color() for i in range(self.size)]
+        D_colors = [self.faces['D'][0][j].get_color() for j in reversed(range(self.size))]
+        L_colors = [self.faces['L'][i][self.size-1].get_color() for i in range(self.size)]
         
         # Apply the exact movements from specifications
-        # U bottom row → L right column
         for i in range(self.size):
-            self.faces['L'][i][self.size-1].set_color(bottom_row_U_colors[i])
-        
-        # L right column → D top row (inverted)
+            self.faces['R'][i][0].set_color(D_colors[i])
         for j in range(self.size):
-            self.faces['D'][0][j].set_color(right_col_L_colors[self.size-1-j])
-        
-        # D top row → R left column (inverted)
+            self.faces['D'][0][j].set_color(L_colors[j])
         for i in range(self.size):
-            self.faces['R'][i][0].set_color(top_row_D_colors[self.size-1-i])
-        
-        # R left column → U bottom row
+            self.faces['L'][i][self.size-1].set_color(U_colors[i])
         for j in range(self.size):
-            self.faces['U'][self.size-1][j].set_color(left_col_R_colors[j])
+            self.faces['U'][self.size-1][j].set_color(R_colors[j])
     
+    def _rotate_B_clockwise(self):
+        """
+        Rotate B face clockwise according to exact specifications from GIROS.md - extensible to any cube size.
+        
+        """
+        # Save original colors before any changes
+        U_colors = [self.faces['U'][0][j].get_color() for j in reversed(range(self.size))]
+        R_colors = [self.faces['R'][i][self.size-1].get_color() for i in range(self.size)]
+        D_colors = [self.faces['D'][self.size-1][j].get_color() for j in reversed(range(self.size))]
+        L_colors = [self.faces['L'][i][0].get_color() for i in range(self.size)]
+                
+        for i in range(self.size):
+            self.faces['R'][i][self.size-1].set_color(D_colors[i])
+        for j in range(self.size):
+            self.faces['D'][self.size-1][j].set_color(L_colors[j])
+        for i in range(self.size):
+            self.faces['L'][i][0].set_color(U_colors[i])
+        for j in range(self.size):
+            self.faces['U'][0][j].set_color(R_colors[j])
+    
+    def _rotate_B_counterclockwise(self):
+        """
+        Rotate B face counterclockwise according to exact specifications from GIROS.md - extensible to any cube size.
+        """
+        # Save original colors before any changes
+        U_colors = [self.faces['U'][0][j].get_color() for j in range(self.size)]
+        R_colors = [self.faces['R'][i][self.size-1].get_color() for i in reversed(range(self.size))]
+        D_colors = [self.faces['D'][self.size-1][j].get_color() for j in range(self.size)]
+        L_colors = [self.faces['L'][i][0].get_color() for i in reversed(range(self.size))]
+                
+        for i in range(self.size):
+            self.faces['R'][i][self.size-1].set_color(U_colors[i])
+        for j in range(self.size):
+            self.faces['D'][self.size-1][j].set_color(R_colors[j])
+        for i in range(self.size):
+            self.faces['L'][i][0].set_color(D_colors[i])
+        for j in range(self.size):
+            self.faces['U'][0][j].set_color(L_colors[j])
+
     def _rotate_U_clockwise(self):
         """
         Rotate U face clockwise according to exact specifications - extensible to any cube size.
-        
-        For any cube size, we move the top row (row 0) of adjacent faces:
-        F top row → L top row
-        L top row → B top row  
-        B top row → R top row
-        R top row → F top row
         """
         # Save original colors before any changes
-        top_row_F_colors = [self.faces['F'][0][j].get_color() for j in range(self.size)]
-        top_row_L_colors = [self.faces['L'][0][j].get_color() for j in range(self.size)]
-        top_row_B_colors = [self.faces['B'][0][j].get_color() for j in range(self.size)]
-        top_row_R_colors = [self.faces['R'][0][j].get_color() for j in range(self.size)]
-        
+        F_colors = [self.faces['F'][0][j].get_color() for j in range(self.size)]
+        R_colors = [self.faces['R'][0][j].get_color() for j in range(self.size)]
+        B_colors = [self.faces['B'][0][j].get_color() for j in range(self.size)]
+        L_colors = [self.faces['L'][0][j].get_color() for j in range(self.size)]
+
         # Apply the exact movements from specifications
-        # F top row → L top row
         for j in range(self.size):
-            self.faces['L'][0][j].set_color(top_row_F_colors[j])
+            self.faces['F'][0][j].set_color(R_colors[j])
+        for j in range(self.size):
+            self.faces['R'][0][j].set_color(B_colors[j])
+        for j in range(self.size):
+            self.faces['B'][0][j].set_color(L_colors[j])
+        for j in range(self.size):
+            self.faces['L'][0][j].set_color(F_colors[j])
         
-        # L top row → B top row
-        for j in range(self.size):
-            self.faces['B'][0][j].set_color(top_row_L_colors[j])
-        
-        # B top row → R top row
-        for j in range(self.size):
-            self.faces['R'][0][j].set_color(top_row_B_colors[j])
-        
-        # R top row → F top row
-        for j in range(self.size):
-            self.faces['F'][0][j].set_color(top_row_R_colors[j])
     
     def _rotate_U_counterclockwise(self):
         """
         Rotate U face counterclockwise according to exact specifications - extensible to any cube size.
-        
-        For any cube size, we move the top row (row 0) of adjacent faces:
-        F top row → R top row
-        R top row → B top row
-        B top row → L top row
-        L top row → F top row
         """
         # Save original colors before any changes
-        top_row_F_colors = [self.faces['F'][0][j].get_color() for j in range(self.size)]
-        top_row_R_colors = [self.faces['R'][0][j].get_color() for j in range(self.size)]
-        top_row_B_colors = [self.faces['B'][0][j].get_color() for j in range(self.size)]
-        top_row_L_colors = [self.faces['L'][0][j].get_color() for j in range(self.size)]
+        F_colors = [self.faces['F'][0][j].get_color() for j in range(self.size)]
+        R_colors = [self.faces['R'][0][j].get_color() for j in range(self.size)]
+        B_colors = [self.faces['B'][0][j].get_color() for j in range(self.size)]
+        L_colors = [self.faces['L'][0][j].get_color() for j in range(self.size)]
         
         # Apply the exact movements from specifications
-        # F top row → R top row
         for j in range(self.size):
-            self.faces['R'][0][j].set_color(top_row_F_colors[j])
-        
-        # R top row → B top row
+            self.faces['F'][0][j].set_color(L_colors[j])
         for j in range(self.size):
-            self.faces['B'][0][j].set_color(top_row_R_colors[j])
-        
-        # B top row → L top row
+            self.faces['R'][0][j].set_color(F_colors[j])
         for j in range(self.size):
-            self.faces['L'][0][j].set_color(top_row_B_colors[j])
-        
-        # L top row → F top row
+            self.faces['B'][0][j].set_color(R_colors[j])
         for j in range(self.size):
-            self.faces['F'][0][j].set_color(top_row_L_colors[j])
+            self.faces['L'][0][j].set_color(B_colors[j])  
     
     def _rotate_D_clockwise(self):
         """
         Rotate D face clockwise according to exact specifications - extensible to any cube size.
-        
-        For any cube size, we move the bottom row (row size-1) of adjacent faces:
-        F bottom row → R bottom row
-        R bottom row → B bottom row
-        B bottom row → L bottom row
-        L bottom row → F bottom row
         """
         # Save original colors before any changes
-        bottom_row_F_colors = [self.faces['F'][self.size-1][j].get_color() for j in range(self.size)]
-        bottom_row_R_colors = [self.faces['R'][self.size-1][j].get_color() for j in range(self.size)]
-        bottom_row_B_colors = [self.faces['B'][self.size-1][j].get_color() for j in range(self.size)]
-        bottom_row_L_colors = [self.faces['L'][self.size-1][j].get_color() for j in range(self.size)]
+        F_colors = [self.faces['F'][self.size-1][j].get_color() for j in range(self.size)]
+        R_colors = [self.faces['R'][self.size-1][j].get_color() for j in range(self.size)]
+        B_colors = [self.faces['B'][self.size-1][j].get_color() for j in range(self.size)]
+        L_colors = [self.faces['L'][self.size-1][j].get_color() for j in range(self.size)]
         
         # Apply the exact movements from specifications
-        # F bottom row → R bottom row
         for j in range(self.size):
-            self.faces['R'][self.size-1][j].set_color(bottom_row_F_colors[j])
-        
-        # R bottom row → B bottom row
+            self.faces['F'][self.size-1][j].set_color(L_colors[j])
         for j in range(self.size):
-            self.faces['B'][self.size-1][j].set_color(bottom_row_R_colors[j])
-        
-        # B bottom row → L bottom row
+            self.faces['R'][self.size-1][j].set_color(F_colors[j])
         for j in range(self.size):
-            self.faces['L'][self.size-1][j].set_color(bottom_row_B_colors[j])
-        
-        # L bottom row → F bottom row
+            self.faces['B'][self.size-1][j].set_color(R_colors[j])
         for j in range(self.size):
-            self.faces['F'][self.size-1][j].set_color(bottom_row_L_colors[j])
+            self.faces['L'][self.size-1][j].set_color(B_colors[j])
     
     def _rotate_D_counterclockwise(self):
         """
         Rotate D face counterclockwise according to exact specifications - extensible to any cube size.
-        
-        For any cube size, we move the bottom row (row size-1) of adjacent faces:
-        F bottom row → L bottom row
-        L bottom row → B bottom row
-        B bottom row → R bottom row
-        R bottom row → F bottom row
         """
         # Save original colors before any changes
-        bottom_row_F_colors = [self.faces['F'][self.size-1][j].get_color() for j in range(self.size)]
-        bottom_row_L_colors = [self.faces['L'][self.size-1][j].get_color() for j in range(self.size)]
-        bottom_row_B_colors = [self.faces['B'][self.size-1][j].get_color() for j in range(self.size)]
-        bottom_row_R_colors = [self.faces['R'][self.size-1][j].get_color() for j in range(self.size)]
+        F_colors = [self.faces['F'][self.size-1][j].get_color() for j in range(self.size)]
+        R_colors = [self.faces['R'][self.size-1][j].get_color() for j in range(self.size)]
+        L_colors = [self.faces['L'][self.size-1][j].get_color() for j in range(self.size)]
+        B_colors = [self.faces['B'][self.size-1][j].get_color() for j in range(self.size)]
+        
         
         # Apply the exact movements from specifications
-        # F bottom row → L bottom row
         for j in range(self.size):
-            self.faces['L'][self.size-1][j].set_color(bottom_row_F_colors[j])
+            self.faces['F'][self.size-1][j].set_color(R_colors[j])
+        for j in range(self.size):
+            self.faces['R'][self.size-1][j].set_color(B_colors[j])
+        for j in range(self.size):
+            self.faces['B'][self.size-1][j].set_color(L_colors[j])
+        for j in range(self.size):
+            self.faces['L'][self.size-1][j].set_color(F_colors[j])
+
+    def _rotate_L_clockwise(self):
+        """
+        Rotate L face clockwise according to exact specifications - extensible to any cube size.
+        """
+        # Save original colors before any changes
+        F_colors = [self.faces['F'][i][0].get_color() for i in range(self.size)]
+        U_colors = [self.faces['U'][i][0].get_color() for i in range(self.size)]
+        B_colors = [self.faces['B'][i][self.size-1].get_color() for i in reversed(range(self.size))]
+        D_colors = [self.faces['D'][i][0].get_color() for i in reversed(range(self.size))]
         
-        # L bottom row → B bottom row
-        for j in range(self.size):
-            self.faces['B'][self.size-1][j].set_color(bottom_row_L_colors[j])
+        # Apply the exact movements from specifications
+        for i in range(self.size):
+            self.faces['F'][i][0].set_color(U_colors[i])
+        for i in range(self.size):
+            self.faces['U'][i][0].set_color(B_colors[i])
+        for i in range(self.size):
+            self.faces['B'][i][self.size-1].set_color(D_colors[i])
+        for i in range(self.size):
+            self.faces['D'][i][0].set_color(F_colors[i])
+
+    def _rotate_L_counterclockwise(self):
+        """
+        Rotate L face counterclockwise according to exact specifications - extensible to any cube size.
+        """
+        # Save original colors before any changes
+        F_colors = [self.faces['F'][i][0].get_color() for i in range(self.size)]
+        U_colors = [self.faces['U'][i][0].get_color() for i in reversed(range(self.size))]
+        B_colors = [self.faces['B'][i][self.size-1].get_color() for i in reversed(range(self.size))]
+        D_colors = [self.faces['D'][i][0].get_color() for i in range(self.size)]
         
-        # B bottom row → R bottom row
-        for j in range(self.size):
-            self.faces['R'][self.size-1][j].set_color(bottom_row_B_colors[j])
-        
-        # R bottom row → F bottom row
-        for j in range(self.size):
-            self.faces['F'][self.size-1][j].set_color(bottom_row_R_colors[j])
+        # Apply the exact movements from specifications
+        for i in range(self.size):
+            self.faces['F'][i][0].set_color(D_colors[i])
+        for i in range(self.size):
+            self.faces['U'][i][0].set_color(F_colors[i])
+        for i in range(self.size):
+            self.faces['B'][i][self.size-1].set_color(U_colors[i])
+        for i in range(self.size):
+            self.faces['D'][i][0].set_color(B_colors[i])
     
-    def update_sticker_positions(self):
-        """Update the 3D positions and matrix coordinates of all stickers to match their current matrix positions."""
-        for face in config.FACE_NAMES:
-            for i in range(self.size):
-                for j in range(self.size):
-                    sticker = self.faces[face][i][j]
-                    # Update matrix coordinates to match current position in matrix
-                    sticker.set_matrix_position(i, j)
-                    # Calculate new 3D position based on current matrix position (i,j)
-                    new_pos = self.calculate_sticker_position(face, i, j)
-                    sticker.set_position(new_pos)
-    
+    def _rotate_R_clockwise(self):
+        """
+        Rotate R face clockwise according to exact specifications - extensible to any cube size.
+        """
+        # Save original colors before any changes
+        F_colors = [self.faces['F'][i][self.size-1].get_color() for i in range(self.size)]
+        U_colors = [self.faces['U'][i][self.size-1].get_color() for i in reversed(range(self.size))]
+        B_colors = [self.faces['B'][i][0].get_color() for i in reversed(range(self.size))]
+        D_colors = [self.faces['D'][i][self.size-1].get_color() for i in range(self.size)]
+        
+        # Apply the exact movements from specifications
+        for i in range(self.size):
+            self.faces['F'][i][self.size-1].set_color(D_colors[i])
+        for i in range(self.size):
+            self.faces['U'][i][self.size-1].set_color(F_colors[i])
+        for i in range(self.size):
+            self.faces['B'][i][0].set_color(U_colors[i])
+        for i in range(self.size):
+            self.faces['D'][i][self.size-1].set_color(B_colors[i])
+
+    def _rotate_R_counterclockwise(self):
+        """
+        Rotate R face counterclockwise according to exact specifications - extensible to any cube size.
+        """
+        # Save original colors before any changes
+        F_colors = [self.faces['F'][i][self.size-1].get_color() for i in range(self.size)]
+        U_colors = [self.faces['U'][i][self.size-1].get_color() for i in (range(self.size))]
+        B_colors = [self.faces['B'][i][0].get_color() for i in reversed(range(self.size))]
+        D_colors = [self.faces['D'][i][self.size-1].get_color() for i in reversed(range(self.size))]
+        
+        # Apply the exact movements from specifications
+        for i in range(self.size):
+            self.faces['F'][i][self.size-1].set_color(U_colors[i])
+        for i in range(self.size):
+            self.faces['U'][i][self.size-1].set_color(B_colors[i])
+        for i in range(self.size):
+            self.faces['B'][i][0].set_color(D_colors[i])
+        for i in range(self.size):
+            self.faces['D'][i][self.size-1].set_color(F_colors[i])
+
     def set_selected_face(self, face):
         """Set the selected face for highlighting."""
         # Clear previous selection
@@ -650,4 +698,3 @@ class Cube:
             return closest_sticker
         else:
             logger.debug(f"No sticker found within reasonable distance. Closest: {closest_distance:.3f}")
-            return None 
