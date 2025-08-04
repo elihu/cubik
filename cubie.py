@@ -78,19 +78,24 @@ class Cubie:
         # Extract rotation matrix to transform normals
         rotation_matrix = final_matrix[:3, :3]
         
+        # Check if this cubie is currently animating
+        is_animating = animating_matrix is not None
+        
         glBegin(GL_QUADS)
         s = config.CUBIE_SIZE / 2.0
         for normal, face_name in config.FACES.items():
             # Use pre-assigned color
-            color = self.colors[face_name]
+            original_color = self.colors[face_name]
+            color = original_color
             
-            # Apply brightness for selected faces
-            if self.is_selected and color != config.COLORS['INSIDE']:
-                # Make selected faces brighter
+            # Apply brightness for selected faces or animating cubies
+            if (self.is_selected and original_color != config.COLORS['INSIDE']) or is_animating:
+                # Make selected faces or animating cubies brighter
                 color = tuple(min(1.0, c * config.SELECTION_BRIGHTNESS_MULTIPLIER) for c in color)
             
-            # Apply interior color for selected cubies
-            if self.is_selected and color == config.COLORS['INSIDE']:
+            # Apply interior color for selected cubies or animating cubies
+            if ((self.is_selected and original_color == config.COLORS['INSIDE']) or 
+                (is_animating and original_color == config.COLORS['INSIDE'])):
                 color = config.SELECTION_INTERIOR_COLOR
             
             glColor3fv(color)
@@ -119,8 +124,8 @@ class Cubie:
             glVertex3fv(np.dot(rotation, p4))
         glEnd()
 
-        # Draw borders for selection highlighting (all gold)
-        if self.is_selected or self.is_adjacent:
+        # Draw borders for selection highlighting or animating cubies (all gold)
+        if self.is_selected or self.is_adjacent or is_animating:
             glColor3f(*config.SELECTION_COLOR)
             
             # Draw borders for each face
