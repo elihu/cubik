@@ -1,10 +1,10 @@
 """
-Main entry point for the simplified Rubik's Cube application.
+Main entry point for the Rubik's Cube application.
 """
 
 import sys
 import config
-from cube import Cube
+from cube import RubiksCube
 from renderer import Renderer
 from utils import logger
 
@@ -15,7 +15,7 @@ def main():
     
     # Initialize cube
     try:
-        cube = Cube()  # Uses config.CUBE_SIZE
+        cube = RubiksCube()  # Uses config.CUBE_SIZE
         logger.info(f"✓ {config.CUBE_SIZE}x{config.CUBE_SIZE} Rubik's Cube initialized")
     except Exception as e:
         logger.error(f"❌ Failed to initialize cube: {e}")
@@ -27,7 +27,7 @@ def main():
     try:
         renderer = Renderer()
         renderer.initialize()
-        logger.info("Renderer initialized")
+        logger.info("✓ Renderer initialized")
     except Exception as e:
         logger.error(f"❌ Failed to initialize renderer: {e}")
         import traceback
@@ -37,9 +37,10 @@ def main():
     # Main game loop
     logger.info("🎮 Starting game loop...")
     logger.info("🎮 Controls:")
-    logger.info("  - Left mouse: Click and drag to rotate the cube")
-    logger.info("  - Right mouse: Click to select a face")
-    logger.info("  - Left mouse + drag (with face selected): Rotate selected face")
+    logger.info("  - Arrow keys: Rotate faces clockwise (Up/Down/Left/Right)")
+    logger.info("  - F/B: Rotate Front/Back faces clockwise")
+    logger.info("  - Shift + any key: Rotate faces counterclockwise")
+    logger.info("  - Left mouse: Click and drag to rotate the cube view")
     logger.info("  - R: Reset cube")
     logger.info("  - D: Toggle debug mode")
     logger.info("  - ESC: Quit")
