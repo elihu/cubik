@@ -178,10 +178,8 @@ class RubiksCube:
         
         Args:
             face (str): Face to rotate ('U', 'D', 'F', 'B', 'L', 'R')
-            direction (str): 'clockwise' or 'counterclockwise'
+            direction (int): Rotation direction (1 or -1)
         """
-        logger.info(f"🔄 Rotating face {face} {direction}")
-        
         # Convert face name to axis and slice information
         face_to_axis = {
             'U': ('y', (self.n - 1) / 2.0, 1),
@@ -194,9 +192,18 @@ class RubiksCube:
         
         if face in face_to_axis:
             axis, slice_idx, base_dir = face_to_axis[face]
-            # Convert direction string to integer
-            dir_int = 1 if direction == "clockwise" else -1
             # Apply the rotation
-            self.start_move(axis, slice_idx, dir_int * base_dir)
+            self.start_move(axis, slice_idx, direction * base_dir)
+            
+            # Log the rotation with proper direction
+            actual_direction = direction * base_dir
+            if base_dir > 0:  # U, R, F faces
+                rotation_direction = "counterclockwise" if actual_direction > 0 else "clockwise"
+            else:  # L, D, B faces
+                rotation_direction = "clockwise" if actual_direction > 0 else "counterclockwise"
+            
+            logger.info(f"🔄 Rotating {face} face {rotation_direction}")
         else:
-            logger.warning(f"⚠️ Unknown face: {face}") 
+            logger.warning(f"⚠️ Unknown face: {face}")
+    
+ 

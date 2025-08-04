@@ -138,30 +138,20 @@ class Renderer:
             if movement_key in key_mappings:
                 mods = pygame.key.get_mods()
                 direction = 1 if mods & pygame.KMOD_SHIFT else -1
-                axis, slice_idx, base_dir = key_mappings[movement_key]
-                cube.start_move(axis, slice_idx, direction * base_dir)
                 
-                # Log the face rotation with direction
+                # Convert movement key to face name
                 face_names = {
-                    'UP': 'Up',
-                    'DOWN': 'Down', 
-                    'RIGHT': 'Right',
-                    'LEFT': 'Left',
-                    'FRONT': 'Front',
-                    'BACK': 'Back'
+                    'UP': 'U',
+                    'DOWN': 'D', 
+                    'RIGHT': 'R',
+                    'LEFT': 'L',
+                    'FRONT': 'F',
+                    'BACK': 'B'
                 }
-                face_name = face_names.get(movement_key, movement_key)
-                # Calculate the actual rotation direction considering both direction and base_dir
-                actual_direction = direction * base_dir
+                face = face_names.get(movement_key, movement_key)
                 
-                # Fix log direction for U, R, F faces (which have base_dir = 1)
-                # L, D, B faces (base_dir = -1) work correctly
-                if base_dir > 0:  # U, R, F faces
-                    rotation_direction = "counterclockwise" if actual_direction > 0 else "clockwise"
-                else:  # L, D, B faces
-                    rotation_direction = "clockwise" if actual_direction > 0 else "counterclockwise"
-                
-                logger.info(f"🔄 Rotating {face_name} face {rotation_direction}")
+                # Use the cube's rotate_face method directly
+                cube.rotate_face(face, direction)
                 
                 logger.debug(f"🎯 Key pressed: {movement_key}, direction: {direction}")
     
@@ -207,29 +197,9 @@ class Renderer:
                 # Vertical movement dominates
                 direction = 1 if total_dy > 0 else -1
             
-            # Use the same system as keyboard controls
-            face_to_axis = {
-                'U': ('y', (cube.n - 1) / 2.0, 1),
-                'D': ('y', -(cube.n - 1) / 2.0, -1),
-                'R': ('x', (cube.n - 1) / 2.0, 1),
-                'L': ('x', -(cube.n - 1) / 2.0, -1),
-                'F': ('z', (cube.n - 1) / 2.0, 1),
-                'B': ('z', -(cube.n - 1) / 2.0, -1)
-            }
-            
-            if self.selected_face in face_to_axis:
-                axis, slice_idx, base_dir = face_to_axis[self.selected_face]
-                cube.start_move(axis, slice_idx, direction * base_dir)
-                
-                # Use the same logging logic as keyboard
-                actual_direction = direction * base_dir
-                if base_dir > 0:  # U, R, F faces
-                    rotation_direction = "counterclockwise" if actual_direction > 0 else "clockwise"
-                else:  # L, D, B faces
-                    rotation_direction = "clockwise" if actual_direction > 0 else "counterclockwise"
-                
-                logger.info(f"🔄 Rotating {self.selected_face} face {rotation_direction}")
-                self.face_rotation_triggered = True
+            # Use the cube's rotate_face method directly
+            cube.rotate_face(self.selected_face, direction)
+            self.face_rotation_triggered = True
         
         self.last_mouse_pos = current_pos
     
