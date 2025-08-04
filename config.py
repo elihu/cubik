@@ -7,7 +7,7 @@ Configuration file containing all constants and static values for the Rubik's Cu
 # ============================================================================
 
 # Main cube parameter - change this value to have a 2x2, 3x3, 4x4, etc. cube!
-CUBE_SIZE = 2
+CUBE_SIZE = 3
 
 # ============================================================================
 # RENDERING CONSTANTS

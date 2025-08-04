@@ -163,4 +163,40 @@ class RubiksCube:
         self.view_rot_x = config.INITIAL_ROTATION_X
         self.view_rot_y = config.INITIAL_ROTATION_Y
         
-        logger.info("✅ Cube reset to solved state") 
+        logger.info("✅ Cube reset to solved state")
+    
+    def set_selected_face(self, face):
+        """Set the selected face for highlighting."""
+        # For now, just store the selected face
+        # TODO: Implement highlighting logic
+        self.selected_face = face
+        logger.debug(f"Face selection set to: {face}")
+    
+    def rotate_face(self, face, direction):
+        """
+        Rotate a face by 90 degrees.
+        
+        Args:
+            face (str): Face to rotate ('U', 'D', 'F', 'B', 'L', 'R')
+            direction (str): 'clockwise' or 'counterclockwise'
+        """
+        logger.info(f"🔄 Rotating face {face} {direction}")
+        
+        # Convert face name to axis and slice information
+        face_to_axis = {
+            'U': ('y', (self.n - 1) / 2.0, 1),
+            'D': ('y', -(self.n - 1) / 2.0, -1),
+            'R': ('x', (self.n - 1) / 2.0, 1),
+            'L': ('x', -(self.n - 1) / 2.0, -1),
+            'F': ('z', (self.n - 1) / 2.0, 1),
+            'B': ('z', -(self.n - 1) / 2.0, -1)
+        }
+        
+        if face in face_to_axis:
+            axis, slice_idx, base_dir = face_to_axis[face]
+            # Convert direction string to integer
+            dir_int = 1 if direction == "clockwise" else -1
+            # Apply the rotation
+            self.start_move(axis, slice_idx, dir_int * base_dir)
+        else:
+            logger.warning(f"⚠️ Unknown face: {face}") 

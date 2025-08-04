@@ -41,6 +41,8 @@ def main():
     logger.info("  - F/B: Rotate Front/Back faces clockwise")
     logger.info("  - Shift + any key: Rotate faces counterclockwise")
     logger.info("  - Left mouse: Click and drag to rotate the cube view")
+    logger.info("  - Right mouse: Click to select a face")
+    logger.info("  - Left mouse + drag (with face selected): Rotate selected face")
     logger.info("  - R: Reset cube")
     logger.info("  - D: Toggle debug mode")
     logger.info("  - ESC: Quit")
