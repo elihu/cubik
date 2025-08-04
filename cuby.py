@@ -9,7 +9,7 @@ import math
 # ===============================================================
 # --- CONFIGURACIÓN PRINCIPAL ---
 # ¡Cambia este valor para tener un cubo 2x2, 3x3, 4x4, etc.!
-N = 3
+N = 2
 # ===============================================================
 
 # --- Constantes ---
@@ -38,34 +38,60 @@ FACES = {
 
 class Cubie:
     """Representa un único cubito del cubo de Rubik."""
-    def __init__(self, pos):
-        # La posición lógica (ej: (-1, 1, 1) para una esquina)
+    def __init__(self, pos, N):
         self.pos = np.array(pos, dtype=float)
-        # La matriz de transformación que guarda su posición y rotación en el espacio 3D
         self.matrix = np.identity(4)
-        # Lo movemos a su posición inicial
         self.matrix[0:3, 3] = self.pos
+        
+        # --- NUEVA LÓGICA: Asignar colores basándose en la posición inicial ---
+        self.colors = {}
+        boundary = (N - 1) / 2.0
+        epsilon = 1e-6
+        
+        # Asignamos el color 'INSIDE' por defecto a todas las caras
+        for normal, face_name in FACES.items():
+            self.colors[face_name] = COLORS['INSIDE']
+            
+        # Asignamos colores de cara a las caras exteriores
+        if abs(self.pos[0] - boundary) < epsilon:
+            self.colors['R'] = COLORS['R']
+        if abs(self.pos[0] + boundary) < epsilon:
+            self.colors['L'] = COLORS['L']
+        if abs(self.pos[1] - boundary) < epsilon:
+            self.colors['U'] = COLORS['U']
+        if abs(self.pos[1] + boundary) < epsilon:
+            self.colors['D'] = COLORS['D']
+        if abs(self.pos[2] - boundary) < epsilon:
+            self.colors['F'] = COLORS['F']
+        if abs(self.pos[2] + boundary) < epsilon:
+            self.colors['B'] = COLORS['B']
+        # ---------------------------------------------------------------------
 
     def draw(self, animating_matrix=None):
         """Dibuja el cubie aplicando su matriz de transformación y la de animación si existe."""
         glPushMatrix()
 
-        # Si el cubie está en movimiento, aplicamos la rotación de la animación
+        # Obtenemos la matriz de transformación final
+        final_matrix = np.identity(4)
         if animating_matrix is not None:
-            glMultMatrixf(animating_matrix.T)
+            final_matrix = np.dot(animating_matrix, self.matrix)
+            glMultMatrixf(final_matrix.T)
+        else:
+            final_matrix = self.matrix
+            glMultMatrixf(self.matrix.T)
 
-        # Aplicamos la transformación propia del cubie (su posición y orientación actual)
-        glMultMatrixf(self.matrix.T)
-
-        # Dibujamos las 6 caras del cubito
+        # Extraemos la matriz de rotación para transformar las normales
+        rotation_matrix = final_matrix[:3, :3]
+        
         glBegin(GL_QUADS)
         s = CUBIE_SIZE / 2.0
         for normal, face_name in FACES.items():
-            # Solo coloreamos las caras que están en el exterior del cubo grande
-            is_outer_face = round(np.dot(self.pos, normal)) == (N - 1) / 2.0
-            color = COLORS[face_name] if is_outer_face else COLORS['INSIDE']
-            glColor3fv(color)
-            glNormal3fv(normal)
+            # Usamos el color pre-asignado
+            glColor3fv(self.colors[face_name])
+            
+            # Para la iluminación, siempre usamos la normal transformada
+            transformed_normal = np.dot(rotation_matrix, normal)
+            glNormal3fv(transformed_normal)
 
             # Creamos los 4 vértices de la cara usando un poco de álgebra vectorial
             p1 = np.array([-s, -s, s])
@@ -74,11 +100,11 @@ class Cubie:
             p4 = np.array([-s, s, s])
             
             # Rotamos los vértices para que coincidan con la orientación de la normal
-            if normal[0] != 0: # Caras R/L
+            if normal[0] != 0:
                 rotation = self.get_rotation_matrix(90 * normal[0], (0, 1, 0))
-            elif normal[1] != 0: # Caras U/D
+            elif normal[1] != 0:
                 rotation = self.get_rotation_matrix(-90 * normal[1], (1, 0, 0))
-            else: # Caras F/B
+            else:
                 rotation = self.get_rotation_matrix(180 if normal[2] < 0 else 0, (0, 1, 0))
             
             glVertex3fv(np.dot(rotation, p1))
@@ -88,14 +114,13 @@ class Cubie:
         glEnd()
 
         glPopMatrix()
-
+    
     def get_rotation_matrix(self, angle, axis):
-        """Devuelve una matriz de rotación simple (sin numpy para simplicidad aquí)."""
         c, s = math.cos(math.radians(angle)), math.sin(math.radians(angle))
         x, y, z = axis
         return np.array([
-            [c + x*x*(1-c),   x*y*(1-c) - z*s, x*z*(1-c) + y*s],
-            [y*x*(1-c) + z*s, c + y*y*(1-c),   y*z*(1-c) - x*s],
+            [c + x*x*(1-c), x*y*(1-c) - z*s, x*z*(1-c) + y*s],
+            [y*x*(1-c) + z*s, c + y*y*(1-c), y*z*(1-c) - x*s],
             [z*x*(1-c) - y*s, z*y*(1-c) + x*s, c + z*z*(1-c)]
         ])
 
@@ -108,7 +133,7 @@ class RubiksCube:
         # El margen nos ayuda a calcular las coordenadas de -X a +X
         margin = (self.n - 1) / 2.0
         # Creamos la lista de cubies en sus posiciones iniciales
-        self.cubies = [Cubie((x, y, z))
+        self.cubies = [Cubie((x, y, z), self.n)
                        for x in np.linspace(-margin, margin, self.n)
                        for y in np.linspace(-margin, margin, self.n)
                        for z in np.linspace(-margin, margin, self.n)]
@@ -130,6 +155,8 @@ class RubiksCube:
         if axis == 'x': return np.array([[1, 0, 0, 0], [0, c,-s, 0], [0, s, c, 0], [0, 0, 0, 1]], dtype=float)
         if axis == 'y': return np.array([[c, 0, s, 0], [0, 1, 0, 0], [-s,0, c, 0], [0, 0, 0, 1]], dtype=float)
         if axis == 'z': return np.array([[c,-s, 0, 0], [s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=float)
+        # Por seguridad, si el eje es None (en la animación), devolvemos una matriz identidad
+        return np.identity(4)
 
     def start_move(self, axis, slice_index, direction):
         """Prepara una animación de giro si no hay otra en curso."""
@@ -142,7 +169,10 @@ class RubiksCube:
         
         # Selecciona los cubies que pertenecen a la capa (slice) a girar
         axis_map = {'x': 0, 'y': 1, 'z': 2}
-        self.animation_cubies = [c for c in self.cubies if round(c.pos[axis_map[axis]]) == slice_index]
+        
+        epsilon = 1e-6 # Usamos un umbral para la comparación de punto flotante
+        
+        self.animation_cubies = [c for c in self.cubies if abs(c.pos[axis_map[axis]] - slice_index) < epsilon]
 
     def update_animation(self):
         """Avanza la animación un paso y la finaliza si llega al objetivo."""
@@ -164,7 +194,26 @@ class RubiksCube:
             # 1. Actualiza la matriz de transformación permanente
             cubie.matrix = np.dot(rot_matrix, cubie.matrix)
             # 2. Actualiza la posición lógica para futuros giros
-            cubie.pos = np.round(np.dot(rot_matrix[:3, :3], cubie.pos))
+            # El redondeo debe ser a la coordenada más cercana, no a un entero
+            # Usamos un valor fijo para el redondeo para mantener la consistencia
+            # Para N=2, las posiciones son -0.5, 0.5. El redondeo debería ser al valor más cercano.
+            new_pos = np.dot(rot_matrix[:3, :3], cubie.pos)
+            
+            # Una forma robusta de redondear a los valores correctos
+            # round_step = (self.n > 1) / (self.n - 1)
+            # cubie.pos = np.round(new_pos / round_step) * round_step
+
+            # Una solución más sencilla y directa es simplemente redondear a 1 decimal
+            # para cubos 2x2 y 4x4, y a 0 decimales para 3x3 y 5x5.
+            # Una solución más robusta y general es usar el linspace de nuevo
+            
+            # Solución robusta para todas las N:
+            steps = np.linspace(-(self.n-1)/2, (self.n-1)/2, self.n)
+            cubie.pos = np.array([
+                steps[np.argmin(np.abs(steps - new_pos[0]))],
+                steps[np.argmin(np.abs(steps - new_pos[1]))],
+                steps[np.argmin(np.abs(steps - new_pos[2]))]
+            ])
         
         # Resetea el estado de animación
         self.is_animating = False
