@@ -44,6 +44,16 @@ class Cubie:
             self.colors['F'] = config.COLORS['F']
         if abs(self.pos[2] + boundary) < epsilon:
             self.colors['B'] = config.COLORS['B']
+    
+    def set_interior_color(self, color):
+        """Set the interior color of the cubie."""
+        # Find all faces that are not exterior faces (i.e., interior faces)
+        for normal, face_name in config.FACES.items():
+            if self.colors[face_name] == config.COLORS['INSIDE']:
+                self.colors[face_name] = color
+            # Also reset any faces that were previously set to selection color
+            elif self.colors[face_name] == config.SELECTION_COLOR:
+                self.colors[face_name] = color
 
     def draw(self, animating_matrix=None):
         """

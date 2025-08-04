@@ -153,6 +153,11 @@ class RubiksCube:
     
     def reset_to_solved(self):
         """Reset the cube to solved state."""
+        # Clear any existing selection
+        if hasattr(self, 'selected_face') and self.selected_face:
+            self._clear_face_selection(self.selected_face)
+            self.selected_face = None
+        
         margin = (self.n - 1) / 2.0
         self.cubies = [Cubie((x, y, z), self.n)
                        for x in np.linspace(-margin, margin, self.n)
@@ -167,10 +172,60 @@ class RubiksCube:
     
     def set_selected_face(self, face):
         """Set the selected face for highlighting."""
-        # For now, just store the selected face
-        # TODO: Implement highlighting logic
+        # Clear previous selection
+        if hasattr(self, 'selected_face') and self.selected_face:
+            self._clear_face_selection(self.selected_face)
+        
+        # Set new selection
         self.selected_face = face
-        logger.debug(f"Face selection set to: {face}")
+        if face:
+            self._set_face_selection(face)
+            logger.debug(f"Face selection set to: {face}")
+        else:
+            logger.debug("Face selection cleared")
+    
+    def _clear_face_selection(self, face):
+        """Clear selection for a face by resetting interior colors."""
+        # Find all cubies that belong to the selected face
+        face_cubies = self._get_cubies_for_face(face)
+        
+        for cubie in face_cubies:
+            # Reset the interior color to normal
+            cubie.set_interior_color(config.COLORS['INSIDE'])
+        
+        logger.debug(f"Cleared selection for face: {face}")
+    
+    def _set_face_selection(self, face):
+        """Set selection for a face by changing interior colors."""
+        # Find all cubies that belong to the selected face
+        face_cubies = self._get_cubies_for_face(face)
+        
+        for cubie in face_cubies:
+            # Set the interior color to selection color
+            cubie.set_interior_color(config.SELECTION_COLOR)
+    
+    def _get_cubies_for_face(self, face):
+        """Get all cubies that belong to a specific face."""
+        face_cubies = []
+        boundary = (self.n - 1) / 2.0
+        epsilon = 1e-6
+        
+        for cubie in self.cubies:
+            # Check if cubie belongs to the selected face
+            if face == 'U' and abs(cubie.pos[1] - boundary) < epsilon:
+                face_cubies.append(cubie)
+            elif face == 'D' and abs(cubie.pos[1] + boundary) < epsilon:
+                face_cubies.append(cubie)
+            elif face == 'R' and abs(cubie.pos[0] - boundary) < epsilon:
+                face_cubies.append(cubie)
+            elif face == 'L' and abs(cubie.pos[0] + boundary) < epsilon:
+                face_cubies.append(cubie)
+            elif face == 'F' and abs(cubie.pos[2] - boundary) < epsilon:
+                face_cubies.append(cubie)
+            elif face == 'B' and abs(cubie.pos[2] + boundary) < epsilon:
+                face_cubies.append(cubie)
+        
+        return face_cubies
     
     def rotate_face(self, face, direction):
         """
