@@ -71,7 +71,10 @@ FACE_NAMES = ['U', 'D', 'F', 'B', 'R', 'L']
 # ============================================================================
 
 # Selection highlighting colors
-SELECTION_COLOR = (1, 0.8, 0)  # Gold border for selected face interior
+SELECTION_BRIGHTNESS_MULTIPLIER = 1.5  # Make selected faces brighter
+SELECTION_COLOR = (1, 0.8, 0)          # Gold color for all selection elements
+SELECTION_INTERIOR_COLOR = (1, 0.8, 0)  # Gold color for selected face interior
+BORDER_WIDTH = 0.02  # Width of selection borders
 
 # ============================================================================
 # INPUT SETTINGS

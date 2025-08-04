@@ -185,24 +185,30 @@ class RubiksCube:
             logger.debug("Face selection cleared")
     
     def _clear_face_selection(self, face):
-        """Clear selection for a face by resetting interior colors."""
+        """Clear selection for a face."""
         # Find all cubies that belong to the selected face
         face_cubies = self._get_cubies_for_face(face)
         
         for cubie in face_cubies:
-            # Reset the interior color to normal
-            cubie.set_interior_color(config.COLORS['INSIDE'])
+            cubie.set_selected(False)
         
-        logger.debug(f"Cleared selection for face: {face}")
+        # Clear adjacent cubies
+        adjacent_cubies = self._get_adjacent_cubies_for_face(face)
+        for cubie in adjacent_cubies:
+            cubie.set_adjacent(False)
     
     def _set_face_selection(self, face):
-        """Set selection for a face by changing interior colors."""
+        """Set selection for a face."""
         # Find all cubies that belong to the selected face
         face_cubies = self._get_cubies_for_face(face)
         
         for cubie in face_cubies:
-            # Set the interior color to selection color
-            cubie.set_interior_color(config.SELECTION_COLOR)
+            cubie.set_selected(True)
+        
+        # Set adjacent cubies
+        adjacent_cubies = self._get_adjacent_cubies_for_face(face)
+        for cubie in adjacent_cubies:
+            cubie.set_adjacent(True)
     
     def _get_cubies_for_face(self, face):
         """Get all cubies that belong to a specific face."""
@@ -226,6 +232,74 @@ class RubiksCube:
                 face_cubies.append(cubie)
         
         return face_cubies
+    
+    def _get_adjacent_cubies_for_face(self, face):
+        """Get cubies from adjacent faces that will move during rotation."""
+        adjacent_cubies = []
+        boundary = (self.n - 1) / 2.0
+        epsilon = 1e-6
+        
+        if face == 'F':  # Front face
+            # Top row of U face
+            for cubie in self.cubies:
+                if abs(cubie.pos[1] - boundary) < epsilon and abs(cubie.pos[2] - boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+            # Left column of R face
+            for cubie in self.cubies:
+                if abs(cubie.pos[0] - boundary) < epsilon and abs(cubie.pos[2] - boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+            # Bottom row of D face
+            for cubie in self.cubies:
+                if abs(cubie.pos[1] + boundary) < epsilon and abs(cubie.pos[2] - boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+            # Right column of L face
+            for cubie in self.cubies:
+                if abs(cubie.pos[0] + boundary) < epsilon and abs(cubie.pos[2] - boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+        
+        elif face == 'U':  # Up face
+            # Top row of F, L, B, R faces
+            for cubie in self.cubies:
+                if abs(cubie.pos[1] - boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+        
+        elif face == 'D':  # Down face
+            # Bottom row of F, L, B, R faces
+            for cubie in self.cubies:
+                if abs(cubie.pos[1] + boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+        
+        elif face == 'L':  # Left face
+            # Left column of U, F, D faces and right column of B face
+            for cubie in self.cubies:
+                if abs(cubie.pos[0] + boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+        
+        elif face == 'R':  # Right face
+            # Right column of U, F, D faces and left column of B face
+            for cubie in self.cubies:
+                if abs(cubie.pos[0] - boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+        
+        elif face == 'B':  # Back face
+            # Top row of U face
+            for cubie in self.cubies:
+                if abs(cubie.pos[1] - boundary) < epsilon and abs(cubie.pos[2] + boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+            # Right column of R face
+            for cubie in self.cubies:
+                if abs(cubie.pos[0] - boundary) < epsilon and abs(cubie.pos[2] + boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+            # Bottom row of D face
+            for cubie in self.cubies:
+                if abs(cubie.pos[1] + boundary) < epsilon and abs(cubie.pos[2] + boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+            # Left column of L face
+            for cubie in self.cubies:
+                if abs(cubie.pos[0] + boundary) < epsilon and abs(cubie.pos[2] + boundary) < epsilon:
+                    adjacent_cubies.append(cubie)
+        
+        return adjacent_cubies
     
     def rotate_face(self, face, direction):
         """

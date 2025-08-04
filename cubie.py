@@ -44,16 +44,18 @@ class Cubie:
             self.colors['F'] = config.COLORS['F']
         if abs(self.pos[2] + boundary) < epsilon:
             self.colors['B'] = config.COLORS['B']
+        
+        # Selection state
+        self.is_selected = False
+        self.is_adjacent = False
     
-    def set_interior_color(self, color):
-        """Set the interior color of the cubie."""
-        # Find all faces that are not exterior faces (i.e., interior faces)
-        for normal, face_name in config.FACES.items():
-            if self.colors[face_name] == config.COLORS['INSIDE']:
-                self.colors[face_name] = color
-            # Also reset any faces that were previously set to selection color
-            elif self.colors[face_name] == config.SELECTION_COLOR:
-                self.colors[face_name] = color
+    def set_selected(self, selected):
+        """Set whether this cubie is selected."""
+        self.is_selected = selected
+    
+    def set_adjacent(self, adjacent):
+        """Set whether this cubie is adjacent to selected face."""
+        self.is_adjacent = adjacent
 
     def draw(self, animating_matrix=None):
         """
@@ -80,7 +82,18 @@ class Cubie:
         s = config.CUBIE_SIZE / 2.0
         for normal, face_name in config.FACES.items():
             # Use pre-assigned color
-            glColor3fv(self.colors[face_name])
+            color = self.colors[face_name]
+            
+            # Apply brightness for selected faces
+            if self.is_selected and color != config.COLORS['INSIDE']:
+                # Make selected faces brighter
+                color = tuple(min(1.0, c * config.SELECTION_BRIGHTNESS_MULTIPLIER) for c in color)
+            
+            # Apply interior color for selected cubies
+            if self.is_selected and color == config.COLORS['INSIDE']:
+                color = config.SELECTION_INTERIOR_COLOR
+            
+            glColor3fv(color)
             
             # For lighting, always use the transformed normal
             transformed_normal = np.dot(rotation_matrix, normal)
@@ -106,7 +119,42 @@ class Cubie:
             glVertex3fv(np.dot(rotation, p4))
         glEnd()
 
+        # Draw borders for selection highlighting (all gold)
+        if self.is_selected or self.is_adjacent:
+            glColor3f(*config.SELECTION_COLOR)
+            
+            # Draw borders for each face
+            for normal, face_name in config.FACES.items():
+                if self.colors[face_name] != config.COLORS['INSIDE']:
+                    # Draw border for this face
+                    self._draw_face_border(normal, s)
+        
         glPopMatrix()
+    
+    def _draw_face_border(self, normal, s):
+        """Draw a border around a face."""
+        # Create border vertices (slightly larger than the face)
+        border_offset = config.BORDER_WIDTH
+        p1 = np.array([-s - border_offset, -s - border_offset, s + border_offset])
+        p2 = np.array([s + border_offset, -s - border_offset, s + border_offset])
+        p3 = np.array([s + border_offset, s + border_offset, s + border_offset])
+        p4 = np.array([-s - border_offset, s + border_offset, s + border_offset])
+        
+        # Rotate vertices to match the normal orientation
+        if normal[0] != 0:
+            rotation = self.get_rotation_matrix(90 * normal[0], (0, 1, 0))
+        elif normal[1] != 0:
+            rotation = self.get_rotation_matrix(-90 * normal[1], (1, 0, 0))
+        else:
+            rotation = self.get_rotation_matrix(180 if normal[2] < 0 else 0, (0, 1, 0))
+        
+        # Draw border as line loop
+        glBegin(GL_LINE_LOOP)
+        glVertex3fv(np.dot(rotation, p1))
+        glVertex3fv(np.dot(rotation, p2))
+        glVertex3fv(np.dot(rotation, p3))
+        glVertex3fv(np.dot(rotation, p4))
+        glEnd()
     
     def get_rotation_matrix(self, angle, axis):
         """
