@@ -20,10 +20,10 @@ ANIMATION_SPEED = 6  # Grados por fotograma (más alto = más rápido)
 COLORS = {
     'U': (1, 1, 1),       # Blanco (Up)
     'D': (1, 1, 0),       # Amarillo (Down)
-    'F': (0, 0.8, 0),     # Verde (Front)
-    'B': (0, 0, 1),       # Azul (Back)
-    'R': (1, 0, 0),       # Rojo (Right)
-    'L': (1, 0.5, 0),     # Naranja (Left)
+    'F': (1, 0, 0),       # Rojo (Right)
+    'B': (1, 0.5, 0),     # Naranja (Left)
+    'R': (0, 0, 1),       # Azul (Back)
+    'L': (0, 0.8, 0),     # Verde (Front)
     'INSIDE': (0.1, 0.1, 0.1)  # Color interior de los cubies
 }
 
