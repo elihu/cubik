@@ -35,4 +35,4 @@ The program will open a window displaying an interactive cube. Use mouse and key
 Feel free to fork the repository and submit pull requests. For major changes, please open an issue first to discuss your ideas.
 
 ## License
-This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache2.0 License – see the [LICENSE](LICENSE) file for details.
